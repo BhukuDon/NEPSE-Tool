@@ -1,8 +1,5 @@
 
 #Imports
-from ast import Pass
-from email.mime import message
-from unittest import result
 from lib.scripts.default import *
 
 #Root Window
@@ -70,6 +67,7 @@ class __Calc:
             total_receivable = share_amount - broker_commision-sebon_fee-dp_charge-capital_gain_tax
 
             return[share_amount,broker_commision_per,broker_commision,sebon_fee,dp_charge,capital_gain,capital_gain_tax,total_receivable]
+
 def _CalculatorUpdate(_todo,frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=None,_g=None):
     if _todo == "Buy":
         buy_price = _a.get()
@@ -262,7 +260,7 @@ def _CalculatorUpdate(_todo,frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=Non
                     if visible_grid.count(double) > 1 :
                         visible_grid.remove(double)
             if visible_grid[len(visible_grid)-1] == 20:
-                messagebox.showinfo("Error !","Max add limit i.e. 10 reached.\n You cannot add more than 10 inputs") 
+                messagebox.showwarning("Error !","Max add limit i.e. 10 reached.\n You cannot add more than 10 inputs") 
                 return
             to_add_grid = (visible_grid[len(visible_grid)-1])
             non_visible_inputs[0].grid(row=to_add_grid+1,column=1,columnspan=4,pady=(10,0))
@@ -291,7 +289,7 @@ def _CalculatorUpdate(_todo,frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=Non
                     if visible_grid.count(double) > 1 :
                         visible_grid.remove(double)
             if visible_grid[len(visible_grid)-1] == 4:
-                messagebox.showinfo("Error !","Max delete limit i.e. 2 reached.\n You cannot delete more than 2 inputs") 
+                messagebox.showwarning("Error !","Max delete limit i.e. 2 reached.\n You cannot delete more than 2 inputs") 
                 return
             
             visible_inputs[len(visible_inputs)-1].grid_forget()
@@ -697,6 +695,376 @@ def _Calculator(_menu):
 
     return
 
+def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
+    
+    if _todo == "TermsAndCondition_checkbox":
+        #Update next button
+
+        check = _a.get()
+        if check != True:
+            _b.destroy() #destroy next btn
+            next_btn = Button(Root, text="Next",state=DISABLED,padx=15,pady=2)
+            next_btn.grid(row=3,column=3,pady=(30,0))
+            return
+        _b.destroy() #destroy next btn
+        next_btn = Button(Root, text="Next",command=lambda:_GeneralUpdate("TermsAndCondition_btn"),padx=15,pady=2,font = ("Arial",10,"bold"))
+        next_btn.grid(row=3,column=3,pady=(30,0))
+        return
+    if _todo == "TermsAndCondition_btn":
+
+        # Update config 
+        Config['TermsAndCondition'] = True
+        with open ("./data/config.json","w") as write:
+            json.dump(Config,write)
+        write.close()
+        if Config["HowToUse"] == False:
+            _HomeScreen()
+            _HowToUse()
+            return
+        _HomeScreen()
+        return
+
+    if _todo == "HowToUse_close" :
+        check_donotshow = _a.get()
+        #_b = howtouse_window
+
+        if check_donotshow == True:
+            Config["HowToUse"] = True
+            with open("./data/config.json","w") as write_config:
+                json.dump(Config,write_config)
+            write_config.close()
+            _b.destroy()
+            _HomeScreen()
+            return
+        _b.destroy()
+        _HomeScreen()
+        return
+
+    if _todo=="HomeScreen_stocksearch":
+        stock_list=_c
+        combo_box = _b
+        combo_box_var=_a
+        value=combo_box_var.get()
+        if value == '':
+                combo_box['values'] = stock_list
+        else:
+            data = []
+            for item in stock_list:
+                if value.lower() in item.lower():
+                    data.append(item)
+
+            combo_box['values'] = data
+        return
+    
+    if _todo == "CreateProfile_save":
+        #_a = [nickname_var,client_id_var,password_var,broker_var]
+        nickname = _a[0].get()
+        client_id = _a[1].get()
+        password = _a[2].get()
+        broker_no = _a[3].get()
+
+        if True: #Check vars empty / int / float or not
+            if nickname == "" or client_id == "" or password == "" or broker_no == "":
+                messagebox.showwarning("Error !","All entries but be filled.")
+                return
+            try: 
+                nickname  = str(nickname)
+            except:
+                messagebox.showwarning("Error !","Nickname must be a-z,A-Z,0-9.")
+                return
+            try: 
+                client_id  = int(client_id)
+            except:
+                messagebox.showwarning("Error !","Invalid Client ID.")
+                return
+            try: 
+                password  = str(password)
+            except:
+                messagebox.showwarning("Error !","Invalid Password.")
+                return
+            try: 
+                broker_no  = int(broker_no)
+            except:
+                messagebox.showwarning("Error !","Invalid Broker No.")
+                return
+        
+        fetched_profile = __Database()._fetchallprofile()
+
+        try:
+            for profiles in fetched_profile:
+                if nickname == profiles[0]:
+                    messagebox.showwarning("Error !",f"Already created profile with Nickname : {nickname}.")
+                    return
+                if client_id == profiles[1]:
+                    messagebox.showwarning("Error !",f"Already created profile with Client ID : {client_id}.")
+                    return
+        except:
+            pass    
+        # store data in database.
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO profile VALUES (?,?,?,?)",(nickname,client_id,password,broker_no))
+        connection.commit()
+        connection.close()
+        messagebox.showinfo("Success !","You have successfully create profile.")
+        _CreateProfile()    
+
+    if _todo == "CreateProfile_edit":
+        #_a = [nickname_var,client_id_var,password_var,broker_var]
+        nickname = _a[0].get()
+        client_id = _a[1].get()
+        password = _a[2].get()
+        broker_no = _a[3].get()
+
+        if True: #Check vars empty / int / float or not
+            if nickname == "" or client_id == "" or password == "" or broker_no == "":
+                messagebox.showwarning("Error !","All entries but be filled.")
+                return
+            try: 
+                nickname  = str(nickname)
+            except:
+                messagebox.showwarning("Error !","Nickname must be a-z,A-Z,0-9.")
+                return
+            try: 
+                client_id  = int(client_id)
+            except:
+                messagebox.showwarning("Error !","Invalid Client ID.")
+                return
+            try: 
+                password  = str(password)
+            except:
+                messagebox.showwarning("Error !","Invalid Password.")
+                return
+            try: 
+                broker_no  = int(broker_no)
+            except:
+                messagebox.showwarning("Error !","Invalid Broker No.")
+                return
+        
+        fetched_profile = __Database()._fetchallprofile()
+        oid = __Database()._fetchselectedprofile()[4]
+        
+        for profiles in fetched_profile:
+            if profiles[4] == oid:
+                continue
+            if nickname == profiles[0]:
+                messagebox.showwarning("Error !",f"Already created profile with Nickname : {nickname}.")
+                return
+            if client_id == profiles[1]:
+                messagebox.showwarning("Error !",f"Already created profile with Client ID : {client_id}.")
+                return
+        
+        # store data in database.
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("""UPDATE profile SET 
+            nickname=:nickname,
+            tms_clientID=:client_id,
+            tms_password=:password,
+            broker_no=:broker_no
+            Where oid =:oid""",{ "nickname":nickname,"client_id":client_id,"password":password,"broker_no":broker_no,"oid":oid})
+        connection.commit()
+        connection.close()
+        messagebox.showinfo("Success !","You have successfully edited profile.")
+        _Settings()
+        return
+    
+    if _todo == "Settings_selectprofile" :
+        profile_selected  = _a.get()   
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT *,oid FROM profile WHERE nickname=:nickname",{"nickname":profile_selected})
+        data = cursor.fetchall()
+        connection.close()
+        Config["ProfileSelected"] = True
+        Config["Profileoid"] = data[0][4]
+        with open("./data/config.json","w") as write_config:
+            json.dump(Config,write_config)
+        write_config.close()
+        _Settings()
+    
+    if _todo == "Settings_reset" :
+        response=messagebox.askyesno("Reset","This will reset the program. You will lose all data including profile and porfolio.\n Do you want to continue?")
+        if response == True:
+            Config["ProfileSelected"] = False
+            Config["Profileoid"] = 0
+            Config["TermsAndCondition"] = False
+            Config["HowToUse"] = False
+            with open("./data/config.json","w") as write_config:
+                json.dump(Config,write_config)
+            write_config.close()
+            os.remove("./data/heathens.db")
+            quit()
+            return
+        return
+
+    return
+class __Database :
+    def __init__(self):
+        pass
+    def _fetchselectedprofile(self):
+        if Config["ProfileSelected"] == False:
+            return False
+        oid = Config["Profileoid"]
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT *,oid FROM profile WHERE oid =:oid" ,{"oid":oid})
+        data = cursor.fetchall()
+        connection.close()
+        return data[0]
+
+    def _fetchallprofile(self):
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT *,oid FROM profile")
+        data = cursor.fetchall()
+        connection.close()
+        if data == []:
+            return False
+        return data
+
+def _CreateProfile():
+    
+    # Clearing all widgets
+    try:
+        for widgets in Root.winfo_children():
+            widgets.destroy()
+    except:
+        pass
+
+    back_btn = Button(Root,text="Back",font=font_btn,padx=13,pady=3,command=_Settings)
+    back_btn.grid(row=1,column=3,pady=(25,0),padx=(240,0))
+
+    nickname_var = StringVar()
+    nickname_lb = Label(Root,text="Nickname : ",font=font_lb)
+    nickname_etr = Entry(Root,width=20,textvariable=nickname_var)
+    nickname_lb.grid(row=2,column=1,pady=(20,0),padx=(15,0))
+    nickname_etr.grid(row=2,column=2,pady=(20,0))
+
+    client_id_var = StringVar()
+    client_id_lb = Label(Root,text="TMS Client ID : ",font=font_lb)
+    client_id_etr = Entry(Root,width=20,textvariable=client_id_var)
+    client_id_lb.grid(row=3,column=1,pady=(10,0),padx=(35,0))
+    client_id_etr.grid(row=3,column=2,pady=(10,0))
+
+    password_var = StringVar()
+    password_lb = Label(Root,text="TMS Password : ",font=font_lb)
+    password_etr = Entry(Root,width=20,textvariable=password_var)
+    password_lb.grid(row=4,column=1,pady=(10,0),padx=(40,0))
+    password_etr.grid(row=4,column=2,pady=(10,0))
+
+    broker_var = StringVar()
+    broker_lb = Label(Root,text="Broker No. : ",font=font_lb)
+    broker_etr = Entry(Root,width=20,textvariable=broker_var)
+    broker_lb.grid(row=5,column=1,pady=(10,0),padx=(20,0))
+    broker_etr.grid(row=5,column=2,pady=(10,0))
+
+    var =[nickname_var,client_id_var,password_var,broker_var]
+    save_btn = Button(Root,text="Save",font=font_btn,padx=13,pady=3,command = lambda:_GeneralUpdate("CreateProfile_save",var))
+    save_btn.grid(row=6,column=3,pady=(50,0),padx=(240,0))
+    return
+def _ShowProfile():
+    
+    # Clearing all widgets
+    try:
+        for widgets in Root.winfo_children():
+            widgets.destroy()
+    except:
+        pass
+
+    fetch_selected_profile = __Database()._fetchselectedprofile()
+    nickname = fetch_selected_profile[0]
+    client_id = fetch_selected_profile[1]
+    password = fetch_selected_profile[2]
+    broker_no = fetch_selected_profile[3]
+
+    back_btn = Button(Root,text="Back",font=font_btn,padx=13,pady=3,command=_Settings)
+    back_btn.grid(row=1,column=3,pady=(25,0),padx=(240,0))
+
+    nickname_var = StringVar()
+    nickname_lb = Label(Root,text="Nickname : ",font=font_lb)
+    nickname_etr = Entry(Root,width=20,textvariable=nickname_var)
+    nickname_etr.insert(END,nickname)
+    nickname_lb.grid(row=2,column=1,pady=(20,0),padx=(15,0))
+    nickname_etr.grid(row=2,column=2,pady=(20,0))
+
+    client_id_var = StringVar()
+    client_id_lb = Label(Root,text="TMS Client ID : ",font=font_lb)
+    client_id_etr = Entry(Root,width=20,textvariable=client_id_var)
+    client_id_etr.insert(END,client_id)
+    client_id_lb.grid(row=3,column=1,pady=(10,0),padx=(35,0))
+    client_id_etr.grid(row=3,column=2,pady=(10,0))
+
+    password_var = StringVar()
+    password_lb = Label(Root,text="TMS Password : ",font=font_lb)
+    password_etr = Entry(Root,width=20,textvariable=password_var)
+    password_etr.insert(END,password)
+    password_lb.grid(row=4,column=1,pady=(10,0),padx=(40,0))
+    password_etr.grid(row=4,column=2,pady=(10,0))
+
+    broker_var = StringVar()
+    broker_lb = Label(Root,text="Broker No. : ",font=font_lb)
+    broker_etr = Entry(Root,width=20,textvariable=broker_var)
+    broker_etr.insert(END,broker_no)
+    broker_lb.grid(row=5,column=1,pady=(10,0),padx=(20,0))
+    broker_etr.grid(row=5,column=2,pady=(10,0))
+
+    var =[nickname_var,client_id_var,password_var,broker_var]
+    save_btn = Button(Root,text="Save",font=font_btn,padx=13,pady=3,command = lambda:_GeneralUpdate("CreateProfile_edit",var))
+    save_btn.grid(row=6,column=3,pady=(50,0),padx=(240,0))
+    return
+def _Settings():
+    # Clearing all widgets 
+    try:
+        for widgets in Root.winfo_children():
+            widgets.destroy()
+    except:
+        pass
+
+    # home button
+    profile_var = StringVar()
+    profile_list = []
+    fetched_profile = __Database()._fetchallprofile()
+
+    if Config["ProfileSelected"] == False:
+
+        if fetched_profile == False:
+            profile_list = ["Crete Profile"]
+            profile_var.set("Crete Profile")
+        else:
+            fetched_profile = __Database()._fetchallprofile()
+            for profiles in fetched_profile:
+                profile_list.append(profiles[0])
+            profile_var.set("Select A Profile")
+
+    if Config["ProfileSelected"] == True:
+            fetched_profile = __Database()._fetchallprofile()
+            fetched_selected_profile = __Database()._fetchselectedprofile()
+            for profiles in fetched_profile:
+                profile_list.append(profiles[0])
+            profile_var.set(fetched_selected_profile[0])
+    home_btn = Button(Root,image=home_icon,command=_HomeScreen) 
+    home_btn.grid(row=1,column=3,pady=(25,0),padx=(270,10))
+
+    create_profile_btn = Button(Root,text="Create Profile",font=font_btn,padx=13,pady=3,command = _CreateProfile)
+    create_profile_btn.grid(row=2,column=1,columnspan=2,pady=(20,0))
+
+    # command update selected profile
+    select_profile_lb = Label(Root,text="Select Profile : ",font=font_lb)
+    select_profile_opt = OptionMenu(Root,profile_var,*profile_list,command=lambda e:_GeneralUpdate("Settings_selectprofile",profile_var))
+    select_profile_opt.config(height=1,width=15)
+    select_profile_lb.grid(row=3,column=1,pady=(20,0),padx=(40,0))
+    select_profile_opt.grid(row=3,column=2,pady=(20,0))
+    if Config["ProfileSelected"] == True:
+        show_profile_details_btn = Button(Root,text="Show Profile Details",font=font_btn,padx=13,pady=3,command=_ShowProfile)
+    else:
+        show_profile_details_btn = Button(Root,text="Show Profile Details",font=font_btn,padx=13,pady=3,command=lambda:messagebox.showwarning("Error !","Please select a profile first."))
+    show_profile_details_btn.grid(row=4,column=1,columnspan=2,pady=(20,0),padx=(0,0))
+    reset_btn = Button(Root,text="Reset",font=("Arial",10,"bold"),padx=13,pady=3,command=lambda:_GeneralUpdate("Settings_reset"))
+    reset_btn.grid(row=5,column=3,pady=(35,0),padx=(230,10))
+    
+    return
+
 def _HomeScreen():
     #Root title,size
     Root.title("Home | Tool")
@@ -708,10 +1076,8 @@ def _HomeScreen():
     except:
         pass
     
-
-
     calculator_btn = Button(Root,text="Calculator",font=font_btn,padx=13,pady=3,command=lambda:_Calculator("Buy"))
-    setting_btn = Button(Root,image=setting_icon)
+    setting_btn = Button(Root,image=setting_icon,command= _Settings)
     calculator_btn.grid(row=1,column=1,padx=(15,0),pady=(25,0))
     setting_btn.grid(row=1,column=5,pady=(25,0),padx=(0,15))
 
@@ -719,14 +1085,16 @@ def _HomeScreen():
 Use this feature to search any stock listed on NEPSE.
 This shows basic information about the stock.
     """
+    
     #Make This Dynamic
+    
     stock_list = ["(RLFL) Reliance Finance Ltd.","(NIFRA) Nepal Infrastructure Bank Limited","(NABIL) Nabil Bank Limited" ]
 
     search_script_var = StringVar()
     search_script_lb = Label(Root,text="Search Stock : ",font=font_lb)
     search_script_ety = ttk.Combobox(Root,value=stock_list)
     search_script_ety.config(width=30,height=3,textvariable=search_script_var)
-    search_script_ety.bind("<KeyRelease>",lambda e: _Update("HomeScreen_stocksearch",search_script_var,search_script_ety,stock_list))
+    search_script_ety.bind("<KeyRelease>",lambda e: _GeneralUpdate("HomeScreen_stocksearch",search_script_var,search_script_ety,stock_list))
     #search_script_ety.bind("<Return>",lambda e: SEARCH))
     search_script_btn = Button(Root,text="Search",padx=13,pady=3,font=font_btn)
     search_script_info = Button(Root,image=info_icon,command= lambda: messagebox.showinfo("Search Stock Feature",search_script_info_para))
@@ -770,65 +1138,7 @@ After executing the given instruction it will automatically update porfolio if a
     exit_btn = Button(Root,text="Exit",padx=13,pady=3,command=quit,font=("Arial",10,"bold"))
     exit_btn.grid(row=5,column=5,padx=(0,5),pady=(25,0))
     return
-def _Update(_todo,_a=None,_b=None,_c=None):
-    
-    if _todo == "TermsAndCondition_checkbox":
-        #Update next button
 
-        check = _a.get()
-        if check != True:
-            _b.destroy() #destroy next btn
-            next_btn = Button(Root, text="Next",state=DISABLED,padx=15,pady=2)
-            next_btn.grid(row=3,column=3,pady=(30,0))
-            return
-        _b.destroy() #destroy next btn
-        next_btn = Button(Root, text="Next",command=lambda:_Update("TermsAndCondition_btn"),padx=15,pady=2)
-        next_btn.grid(row=3,column=3,pady=(30,0))
-        return
-    if _todo == "TermsAndCondition_btn":
-
-        # Update config 
-        Config['TermsAndCondition'] = True
-        with open ("./data/config.json","w") as write:
-            json.dump(Config,write)
-        write.close()
-        if Config["HowToUse"] == False:
-            _HomeScreen()
-            _HowToUse()
-            return
-        _HomeScreen()
-        return
-
-    if _todo == "HowToUse_close" :
-        check_donotshow = _a.get()
-        #_b = howtouse_window
-
-        if check_donotshow == True:
-            Config["HowToUse"] = True
-            with open("./data/config.json","w") as write_config:
-                json.dump(Config,write_config)
-            write_config.close()
-            _b.destroy()
-            _HomeScreen()
-            return
-        _b.destroy()
-        _HomeScreen()
-
-    if _todo=="HomeScreen_stocksearch":
-        stock_list=_c
-        combo_box = _b
-        combo_box_var=_a
-        value=combo_box_var.get()
-        if value == '':
-                combo_box['values'] = stock_list
-        else:
-            data = []
-            for item in stock_list:
-                if value.lower() in item.lower():
-                    data.append(item)
-
-            combo_box['values'] = data
-    return
 def _HowToUse():
     #How to use window
     howtouse_window= Toplevel(Root)
@@ -852,9 +1162,10 @@ def _HowToUse():
     donotshow_chkbox = Checkbutton(howtouse_window,text="Do Not Show Again",variable=donotshow_var)
     donotshow_chkbox.grid(row=3,column=1,columnspan=2,pady=(20,0))
 
-    close_btn = Button(howtouse_window,text="Close",font=("Arial",10,"bold"),command=lambda:_Update("HowToUse_close",donotshow_var,howtouse_window),padx=13,pady=3)
+    close_btn = Button(howtouse_window,text="Close",font=("Arial",10,"bold"),command=lambda:_GeneralUpdate("HowToUse_close",donotshow_var,howtouse_window),padx=13,pady=3)
     close_btn.grid(row=3,column=3,pady=(20,0))
     return
+
 def _TermsAndCondition():
     #Root title,size
     Root.title("Terms And Condition | Tool")
@@ -900,14 +1211,30 @@ def _TermsAndCondition():
     check_var = BooleanVar()
     check_var.set(False)
 
-    next_btn = Button(Root, text="Next",state=DISABLED,padx=15,pady=2)
+    next_btn = Button(Root, text="Next",state=DISABLED,padx=15,pady=2,font = ("Arial",10,"bold"))
     next_btn.grid(row=3,column=3,pady=(30,0))
 
-    agree_check_box= Checkbutton(Root, text= "Agree to terms and condition",variable=check_var,command=lambda:_Update("TermsAndCondition_checkbox",check_var,next_btn))
+    agree_check_box= Checkbutton(Root, text= "Agree to terms and condition",variable=check_var,command=lambda:_GeneralUpdate("TermsAndCondition_checkbox",check_var,next_btn))
     agree_check_box.grid(row=3,column=1,columnspan=2,pady=(30,0))    
 
 def _Main():
-    
+    # Try creating db and new table 
+    try: 
+        connection = sqlite3.connect("./data/heathens.db")
+        cursor = connection.cursor()
+        cursor.execute("""
+            CREATE TABLE profile (
+                nickname TEXT,
+                tms_clientID INTEGER,
+                tms_password TEXT,
+                broker_no INTEGER
+            )
+        """)
+        connection.commit()
+        connection.close()
+    except Exception as e:
+        print(e)
+
     if Config["TermsAndCondition"] != True:
         #Run TermsandCondition:
         _TermsAndCondition()

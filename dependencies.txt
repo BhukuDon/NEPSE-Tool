@@ -1,0 +1,4 @@
+json
+tkinter
+Pillow
+sqlite3
