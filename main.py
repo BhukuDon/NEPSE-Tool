@@ -1,38 +1,701 @@
+
 #Imports
-from ctypes import alignment
-import json
-from msilib.schema import CheckBox, ComboBox, Font
-from re import search
-# GUI
-from tkinter import *
-from tkinter import font, messagebox,ttk
-# GUI Icon
-from PIL import Image,ImageTk
-
-#Load Config file
-with open ("./data/config.json","r") as read_config:
-    Config=json.load(read_config)
-
-stock_list = ["(RLFL) Reliance Finance Ltd.","(NIFRA) Nepal Infrastructure Bank Limited","(NABIL) Nabil Bank Limited" ]
+from ast import Pass
+from email.mime import message
+from unittest import result
+from lib.scripts.default import *
 
 #Root Window
 Root = Tk()
 Root.iconbitmap("./lib/icons/logo.ico")
 
-#Fonts
-font_btn = ("Arial",10)
-font_lb = ("Arial",10)
 
-#Icon
-setting_icon_temp = Image.open("./lib/icons/settings.png")
-setting_icon_temp=setting_icon_temp.resize((28,28),Image.ANTIALIAS)
-home_icon_temp = Image.open("./lib/icons/home.png")
-info_icon_temp=home_icon_temp.resize((20,20),Image.ANTIALIAS)
-info_icon_temp = Image.open("./lib/icons/info.png")
-info_icon_temp=info_icon_temp.resize((20,20),Image.ANTIALIAS)
-setting_icon = ImageTk.PhotoImage(setting_icon_temp)         
-home_icon = ImageTk.PhotoImage(home_icon_temp)         
-info_icon = ImageTk.PhotoImage(info_icon_temp)         
+#Icons
+if True:
+    setting_icon = ImageTk.PhotoImage(Image.open("./lib/icons/settings.png").resize((28,28),Image.ANTIALIAS))         
+    home_icon = ImageTk.PhotoImage(Image.open("./lib/icons/home.png").resize((25,25),Image.ANTIALIAS))         
+    info_icon = ImageTk.PhotoImage(Image.open("./lib/icons/info.png").resize((20,20),Image.ANTIALIAS)) 
+
+class __Calc:
+    def __init__(self,buyprice=None,quantity=None,sellprice=None,capitalgain=None):
+        self.buyprice = buyprice
+        self.quantity = quantity
+        self.sellprice = sellprice
+        self.capitalgain = capitalgain
+    def _buyfunc(self):
+        total_price = self.buyprice * self.quantity
+        if True:
+            if total_price <= 50000:
+                broker_commision_per = 0.40
+            if total_price > 50000 and total_price <= 500000 :
+                broker_commision_per = 0.37
+            if total_price > 500000 and total_price <= 2000000 :
+                broker_commision_per = 0.34
+            if total_price > 2000000 and total_price <= 10000000 :
+                broker_commision_per = 0.30
+            if total_price > 10000000 :
+                broker_commision_per = 0.27
+            broker_commision = total_price * (broker_commision_per/100)
+            if broker_commision < 10:
+                    broker_commision = 10
+        sebon_fee = total_price * (0.015/100)
+        dp_charge = 25
+        total_amount_payable = total_price + broker_commision + sebon_fee + dp_charge 
+        cost_per_stock = total_amount_payable/self.quantity
+        return([total_price,broker_commision_per,broker_commision,sebon_fee,dp_charge,total_amount_payable,cost_per_stock])
+    def _sellfunc(self):
+            wacc = self._buyfunc()[6]
+            share_amount = self.sellprice * self.quantity
+            if True: #Broker Commision
+                if share_amount <= 50000:
+                    broker_commision_per = 0.40
+                if share_amount > 50000 and share_amount <= 500000 :
+                    broker_commision_per = 0.37
+                if share_amount > 500000 and share_amount <= 2000000 :
+                    broker_commision_per = 0.34
+                if share_amount > 2000000 and share_amount <= 10000000 :
+                    broker_commision_per = 0.30
+                if share_amount > 10000000 :
+                    broker_commision_per = 0.27
+            broker_commision = share_amount * (broker_commision_per/100)
+            if broker_commision < 10:
+                broker_commision =  10
+            sebon_fee = share_amount * (0.015/100)
+            dp_charge = 25
+            capital_gain = share_amount - (wacc * self.quantity)-broker_commision-sebon_fee
+            capital_gain_per = float(self.capitalgain) 
+            capital_gain_tax = 0
+            if capital_gain > 0:
+                capital_gain_tax = (capital_gain)*(capital_gain_per/100)
+            total_receivable = share_amount - broker_commision-sebon_fee-dp_charge-capital_gain_tax
+
+            return[share_amount,broker_commision_per,broker_commision,sebon_fee,dp_charge,capital_gain,capital_gain_tax,total_receivable]
+def _CalculatorUpdate(_todo,frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=None,_g=None):
+    if _todo == "Buy":
+        buy_price = _a.get()
+        quantity = _b.get()
+        try :
+            buy_price=float(buy_price)
+            quantity=int(quantity)
+        except:
+            buy_price=0
+            quantity=0
+        if buy_price==0 or quantity == 0:
+            _c[0].grid_forget()
+            _c[0] = Label(frame,text="*")
+            _c[0].grid(row=1,column=2,pady=(25,0))
+            _c[1].grid_forget()
+            _c[2].grid_forget()
+            _c[1] = Label(frame,text='Broker Commision (*) : ',font=font_lb)
+            _c[2] = Label(frame,text="*")
+            _c[1].grid(row=2,column=1,padx=(0,0),pady=(5,0))        
+            _c[2].grid(row=2,column=2,pady=(5,0)) 
+            _c[3].grid_forget()
+            _c[3] = Label(frame,text="*")    
+            _c[3].grid(row=3,column=2,pady=(5,0))        
+            _c[4].grid_forget()
+            _c[4] = Label(frame,text="*")
+            _c[4].grid(row=4,column=2,pady=(5,0))        
+            _c[5].grid_forget()
+            _c[5] = Label(frame,text="*")
+            _c[5].grid(row=5,column=2,pady=(5,0))        
+            _c[6].grid_forget()
+            _c[6] = Label(frame,text="*")
+            _c[6].grid(row=6,column=2,pady=(5,0))
+            return  
+        ans = __Calc(buy_price,quantity)._buyfunc()
+        _c[0].grid_forget()
+        _c[0] = Label(frame,text="{:.2f}".format(ans[0]))
+        _c[0].grid(row=1,column=2,pady=(25,0))
+        _c[1].grid_forget()
+        _c[2].grid_forget()
+        _c[1] = Label(frame,text='Broker Commision ({}) : '.format(ans[1]),font=font_lb)
+        _c[2] = Label(frame,text="{:.2f}".format(ans[2]))
+        _c[1].grid(row=2,column=1,padx=(0,0),pady=(5,0))        
+        _c[2].grid(row=2,column=2,pady=(5,0)) 
+        _c[3].grid_forget()
+        _c[3] = Label(frame,text="{:.2f}".format(ans[3]))    
+        _c[3].grid(row=3,column=2,pady=(5,0))        
+        _c[4].grid_forget()
+        _c[4] = Label(frame,text="{:.2f}".format(ans[4]))
+        _c[4].grid(row=4,column=2,pady=(5,0))        
+        _c[5].grid_forget()
+        _c[5] = Label(frame,text="{:.2f}".format(ans[5]))
+        _c[5].grid(row=5,column=2,pady=(5,0))        
+        _c[6].grid_forget()
+        _c[6] = Label(frame,text="{:.2f}".format(ans[6]))
+        _c[6].grid(row=6,column=2,pady=(5,0))    
+        print("XXXXXXXXXXXXXXXXXXX")
+        for widgets in frame.winfo_children():
+            print(widgets)    
+    if _todo == "Sell":
+        #"Sell",result_frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list
+        buy_price = _a.get()
+        sell_price = _b.get()
+        quantity = _c.get()
+        capital_gain_tax= _d.get()
+
+        try :
+            buy_price =float(buy_price)
+            sell_price = float(sell_price)
+            quantity = int(quantity)
+        except:
+            buy_price =0
+            sell_price = 0
+            quantity = 0
+        if buy_price == 0 or sell_price == 0 or quantity == 0 :
+            _e[0].grid_forget()
+            _e[0] = Label(frame,text="*")
+            _e[0].grid(row=1,column=2,pady=(20,0),padx=(20,0))
+
+            _e[1].grid_forget()
+            _e[2].grid_forget()
+            _e[1] = Label(frame,text="Broker Commision (*) : ",font=font_lb )
+            _e[2] = Label(frame,text="*")
+            _e[1].grid(row=2,column=1,pady=(5,0),padx=(0,10))
+            _e[2].grid(row=2,column=2,pady=(5,0),padx=(20,0))
+            
+            _e[3].grid_forget()
+            _e[3] = Label(frame,text="*")
+            _e[3].grid(row=3,column=2,pady=(5,0),padx=(20,0))
+            
+            _e[4].grid_forget()
+            _e[4]= Label(frame,text="*")
+            _e[4].grid(row=4,column=2,pady=(5,0),padx=(20,0))
+            
+            _e[5].grid_forget()
+            _e[5] = Label(frame,text="*")
+            _e[5].grid(row=5,column=2,pady=(5,0),padx=(20,0))
+            
+            _e[6].grid_forget()
+            _e[6] = Label(frame,text="*")
+            _e[6].grid(row=6,column=2,pady=(5,0),padx=(20,0))
+            
+            _e[7].grid_forget()
+            _e[7]=  Label(frame,text="*")
+            _e[7].grid(row=7,column=2,pady=(5,0),padx=(20,0))
+            
+
+            for temp in frame.winfo_children():
+                try:
+                    if temp.grid_info()["row"] == 8:
+                        temp.destroy()
+                except:
+                    pass
+
+
+        
+        ans = __Calc(buy_price,quantity,sell_price,capital_gain_tax)._sellfunc()
+        #share_amount_input,broker_commision_lb,broker_commision_input,sebon_fee_input,dp_fee_input,capital_gain_input,capital_gain_tax_input,total_receivable_input
+        
+        _e[0].grid_forget()
+        _e[0] = Label(frame,text="{:.2f}".format(ans[0]))
+        _e[0].grid(row=1,column=2,pady=(20,0),padx=(20,0))
+
+        _e[1].grid_forget()
+        _e[2].grid_forget()
+        _e[1] = Label(frame,text=f"Broker Commision ({ans[1]}) : " ,font=font_lb)
+        _e[2] = Label(frame,text="{:.2f}".format(ans[2]))
+        _e[1].grid(row=2,column=1,pady=(5,0),padx=(0,10))
+        _e[2].grid(row=2,column=2,pady=(5,0),padx=(20,0))
+        
+        _e[3].grid_forget()
+        _e[3] = Label(frame,text="{:.2f}".format(ans[3]))
+        _e[3].grid(row=3,column=2,pady=(5,0),padx=(20,0))
+        
+        _e[4].grid_forget()
+        _e[4]= Label(frame,text="{:.2f}".format(ans[4]))
+        _e[4].grid(row=4,column=2,pady=(5,0),padx=(20,0))
+        
+        _e[5].grid_forget()
+        _e[5] = Label(frame,text="{:.2f}".format(ans[5]))
+        _e[5].grid(row=5,column=2,pady=(5,0),padx=(20,0))
+        
+        _e[6].grid_forget()
+        _e[6] = Label(frame,text="{:.2f}".format(ans[6]))
+        _e[6].grid(row=6,column=2,pady=(5,0),padx=(20,0))
+        
+        _e[7].grid_forget()
+        _e[7]=  Label(frame,text="{:.2f}".format(ans[7]))
+        _e[7].grid(row=7,column=2,pady=(5,0),padx=(20,0))
+        for temp in frame.winfo_children():
+            try:
+                if temp.grid_info()["row"] == 8:
+                    temp.destroy()
+            except:
+                pass 
+        if ans[5] > 0:
+            profit_label = Label(frame, text = "Profit : ",font=font_lb)
+            profit_label.grid(row=8,column=1,pady=(5,0),padx=(0,90))
+            
+        if ans[5] < 0:
+            loss_label = Label(frame, text = "Loss : ",font=font_lb)
+            loss_label.grid(row=8,column=1,pady=(5,0),padx=(0,100))
+        profit_value = Label(frame, text = "{:.2f}".format(ans[5]-ans[6]-ans[4]))
+        profit_value.grid(row=8,column=2,pady=(5,0),padx=(20,0))
+    if _todo == "Average":
+        if True: # Assigning parameter
+            try:
+                buy_var_1 = _a.get()
+                quantity_var_1 = _b.get()
+                buy_var_2 = _c.get()
+                quantity_var_2 = _d.get()
+            except:
+                pass
+            rest_var = _e
+            result_frame = _g
+            # f = add or delete or none
+        
+        if _f == "Add":
+            visible_grid = []
+            non_visible_inputs = []
+            if True:# fetch visible grid and non visible inputs
+                for input_widgets in frame.winfo_children():
+                    try:
+                        visible_grid.append(input_widgets.grid_info()["row"])
+                    except:
+                        non_visible_inputs.append(input_widgets)
+                for double in visible_grid:
+                    if visible_grid.count(double) > 1 :
+                        visible_grid.remove(double)
+                for double in visible_grid:
+                    if visible_grid.count(double) > 1 :
+                        visible_grid.remove(double)
+            if visible_grid[len(visible_grid)-1] == 20:
+                messagebox.showinfo("Error !","Max add limit i.e. 10 reached.\n You cannot add more than 10 inputs") 
+                return
+            to_add_grid = (visible_grid[len(visible_grid)-1])
+            non_visible_inputs[0].grid(row=to_add_grid+1,column=1,columnspan=4,pady=(10,0))
+            non_visible_inputs[1].grid(row=to_add_grid+2,column=1,pady=(5,0))
+            non_visible_inputs[2].grid(row=to_add_grid+2,column=2,pady=(5,0))
+            non_visible_inputs[3].grid(row=to_add_grid+2,column=3,pady=(5,0))
+            non_visible_inputs[4].grid(row=to_add_grid+2,column=4,pady=(5,0))
+
+            Root.geometry(f"600x{(Root.winfo_height())+60}")
+            return
+        if _f == "Delete":
+            visible_grid = []
+            visible_inputs = []
+            if True:# fetch visible grid and non visible inputs
+                for input_widgets in frame.winfo_children():
+                    try:
+                        visible_grid.append(input_widgets.grid_info()["row"])
+                    except:
+                        pass
+                    else:
+                        visible_inputs.append(input_widgets)
+                for double in visible_grid:
+                    if visible_grid.count(double) > 1 :
+                        visible_grid.remove(double)
+                for double in visible_grid:
+                    if visible_grid.count(double) > 1 :
+                        visible_grid.remove(double)
+            if visible_grid[len(visible_grid)-1] == 4:
+                messagebox.showinfo("Error !","Max delete limit i.e. 2 reached.\n You cannot delete more than 2 inputs") 
+                return
+            
+            visible_inputs[len(visible_inputs)-1].grid_forget()
+            visible_inputs[len(visible_inputs)-2].grid_forget()
+            visible_inputs[len(visible_inputs)-3].grid_forget()
+            visible_inputs[len(visible_inputs)-4].grid_forget()
+            visible_inputs[len(visible_inputs)-5].grid_forget()
+            Root.geometry(f"600x{(Root.winfo_height())-60}")
+            return
+        
+        visible_entries = []
+        if True:# fetch visible entries
+            for input_widgets in frame.winfo_children():
+                temp = str(input_widgets).split(".!")
+                if temp[2][:5] == "entry":
+                    try:
+                        (input_widgets.grid_info()["row"])
+                    except:
+                        continue
+                    else:
+                        visible_entries.append(input_widgets)
+        
+        try: #Checking all variables is float/ int or not
+            start = 0
+            end = len(visible_entries)-1
+            buy_var_1 =float(buy_var_1)
+            quantity_var_1=int(quantity_var_1)
+            buy_var_2=float(buy_var_2)
+            quantity_var_2=int(quantity_var_2)
+
+            buy_list = []
+            quantity_list = []
+            if len(visible_entries) != 4:
+                for num in range(start,end-3,2):
+                    x=rest_var[num].get()
+                    
+                    buy_list.append(float(x))
+        
+        
+                for num in range(start+1,end-2,2):
+                    x=rest_var[num].get()
+
+                    quantity_list.append(int(x))
+        except Exception as e:
+            buy_var_1 =0
+            quantity_var_1=0
+            buy_var_2=0
+            quantity_var_2=0
+
+                
+        # fetch result label to delete or show answer
+        result_list =[]
+        for labels in result_frame.winfo_children():
+            temp = str(labels).split(".!")
+            if temp[2][:5] == "label":
+                result_list.append(labels)
+        
+        #If any of the variable is not int/float or empty
+        if buy_var_1 == 0 or quantity_var_1 == 0 or buy_var_2 == 0 or quantity_var_2 == 0: 
+            result_list[1].destroy()
+            result_list[1] = Label(result_frame,text="*")
+            result_list[1].grid(row=2,column=2,pady=(20,0))
+            return
+        
+        #Getting wacc rate for all
+        wacc1 = __Calc(buy_var_1,quantity_var_1)._buyfunc()[5]
+        wacc2 = __Calc(buy_var_2,quantity_var_2)._buyfunc()[5]
+        rest_wacc =[]
+        try:
+            for num in range(int(len(visible_entries)/2)):
+                wacc = __Calc(buy_list[num],quantity_list[num])._buyfunc()[5]
+                rest_wacc.append(wacc)
+        except :
+            pass
+        
+        #getting total price and total quantity 
+        total_price_list = [wacc1,wacc2]
+        for wacc in rest_wacc:
+            total_price_list.append(wacc)
+        total_price=0
+        for wacc in total_price_list:
+            total_price=total_price+wacc
+        total_quantity = quantity_var_1+quantity_var_2
+        for quantity in quantity_list:
+            total_quantity=total_quantity+quantity
+        #showing result
+        result_list[1].destroy()
+        result_list[1] = Label(result_frame,text="{:.2f}".format(total_price/total_quantity))
+        result_list[1].grid(row=2,column=2,pady=(20,0))
+        
+    return
+
+def _Calculator(_menu):
+    #Root title,size
+    Root.title("Calculator | Tool")
+    Root.geometry("600x300")
+    #If any delete all the previous widgets from window
+    try:
+        for widgets in Root.winfo_children():
+            widgets.destroy()
+    except:
+        pass
+    
+    menu_frame = Frame(Root)
+    menu_frame.grid(row=1,column=1)
+    if _menu == "Buy":
+        if True: # Menu Widgets
+            buy_menu_btn = Button(menu_frame,text="Buy",state=DISABLED,padx=7,pady=1,font=font_btn)
+            sell_menu_btn = Button(menu_frame,text="Sell",command=lambda:_Calculator("Sell"),padx=7,pady=2,font=font_btn)
+            average_menu_btn = Button(menu_frame,text="Average",command=lambda:_Calculator("Average"),padx=7,pady=2,font=font_btn)
+            home_btn = Button(menu_frame,image=home_icon,padx=3,pady=3,command=_HomeScreen)
+            buy_menu_btn.grid(row=1,column=1,pady=(20,0),padx=(40,0))
+            sell_menu_btn.grid(row=1,column=2,pady=(20,0),padx=(40,0))
+            average_menu_btn.grid(row=1,column=3,pady=(20,0),padx=(40,0))
+            home_btn.grid(row=1,column=4,pady=(20,0),padx=(260,20))
+        if True: # Frame Widgets
+            input_frame = Frame(Root)
+            input_frame.grid(row=2,column=1)
+            buy_price_var= StringVar()
+            quantity_var= StringVar()        
+            buy_price_lb = Label(input_frame,text="Buying Price : " ,font=font_lb)
+            buy_price_etr = Entry(input_frame,width=20,textvariable=buy_price_var)
+            buy_price_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Buy",result_frame,buy_price_var,quantity_var,forget_list))
+            quantity_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_etr = Entry(input_frame,width=20,textvariable=quantity_var)
+            quantity_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Buy",result_frame,buy_price_var,quantity_var,forget_list))
+            buy_price_lb.grid(row=2,column=1,pady=(20,0),padx=(0,0))
+            buy_price_etr.grid(row=2,column=2,pady=(20,0),padx=(20,0))
+            quantity_lb.grid(row=2,column=3,pady=(20,0),padx=(20,0))
+            quantity_etr.grid(row=2,column=4,pady=(20,0),padx=(20,0))
+        if True: # Result Widgets
+            result_frame = Frame(Root)
+            result_frame.grid(row=3,column=1)
+
+            total_price_lb = Label(result_frame,text='Total Price : ',font=font_lb)
+            total_price_input = Label(result_frame,text='*')
+            total_price_lb.grid(row=1,column=1,padx=(0,63),pady=(25,0))        
+            total_price_input.grid(row=1,column=2,pady=(25,0))        
+
+
+            broker_commision_lb = Label(result_frame,text='Broker Commision (*) : ',font=font_lb)
+            broker_commision_input = Label(result_frame,text='*')
+            broker_commision_lb.grid(row=2,column=1,padx=(0,0),pady=(5,0))        
+            broker_commision_input.grid(row=2,column=2,pady=(5,0))        
+            
+            sebon_fee_lb = Label(result_frame,text='SEBON Fee : ',font=font_lb)
+            sebon_fee_input = Label(result_frame,text='*')
+            sebon_fee_lb.grid(row=3,column=1,padx=(0,53),pady=(5,0))        
+            sebon_fee_input.grid(row=3,column=2,pady=(5,0))        
+
+            dp_charge_lb = Label(result_frame,text='DP Charge : ',font=font_lb)
+            dp_charge_input = Label(result_frame,text='*')
+            dp_charge_lb.grid(row=4,column=1,padx=(0,60),pady=(5,0))        
+            dp_charge_input.grid(row=4,column=2,pady=(5,0))        
+
+            total_payable_amt_lb = Label(result_frame,text='Total Amount Payable : ',font=font_lb)
+            total_payable_amt_input = Label(result_frame,text='*')
+            total_payable_amt_lb.grid(row=5,column=1,padx=(0,0),pady=(5,0))        
+            total_payable_amt_input.grid(row=5,column=2,pady=(5,0))        
+
+            cost_per_stock_lb = Label(result_frame,text='Cost Per Stock : ',font=font_lb)
+            cost_per_stock_input = Label(result_frame,text='*')
+            cost_per_stock_lb.grid(row=6,column=1,padx=(0,38),pady=(5,0))        
+            cost_per_stock_input.grid(row=6,column=2,pady=(5,0))        
+            
+        forget_list = [total_price_input,broker_commision_lb,broker_commision_input,sebon_fee_input,dp_charge_input,total_payable_amt_input,cost_per_stock_input]
+            
+    if _menu == "Sell":
+        Root.geometry("600x400")
+
+        if True: # Menu Widgets
+
+            buy_menu_btn = Button(menu_frame,text="Buy",command=lambda:_Calculator("Buy"),padx=7,pady=1,font=font_btn)
+            sell_menu_btn = Button(menu_frame,text="Sell",state=DISABLED,padx=7,pady=2,font=font_btn)
+            average_menu_btn = Button(menu_frame,text="Average",command=lambda:_Calculator("Average"),padx=7,pady=2,font=font_btn)
+            home_btn = Button(menu_frame,image=home_icon,padx=3,pady=3,command=_HomeScreen)
+            buy_menu_btn.grid(row=1,column=1,pady=(20,0),padx=(40,0))
+            sell_menu_btn.grid(row=1,column=2,pady=(20,0),padx=(40,0))
+            average_menu_btn.grid(row=1,column=3,pady=(20,0),padx=(40,0))
+            home_btn.grid(row=1,column=4,pady=(20,0),padx=(260,20))
+
+        if True: # Input Widgets
+            input_frame = Frame(Root)
+            input_frame.grid(row=2,column=1)
+
+            buy_price_var = StringVar()
+            sell_price_var = StringVar()
+            quantity_var = StringVar()
+            capitalgainlist = [7.5,5]
+            capital_gain_tax_var = DoubleVar()
+
+            buy_price_lb = Label(input_frame, text="Buying Price : ",font=font_lb)
+            buy_price_etr = Entry(input_frame, width=20, textvariable=buy_price_var)
+            buy_price_etr.bind("<KeyRelease>",lambda e : _CalculatorUpdate("Sell",result_frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list))
+            sell_price_lb = Label(input_frame, text="Selling Price : ",font=font_lb)
+            sell_price_etr = Entry(input_frame,width = 20,textvariable=sell_price_var)
+            sell_price_etr.bind("<KeyRelease>",lambda e : _CalculatorUpdate("Sell",result_frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list))
+            buy_price_lb.grid(row=1,column=1,pady=(40,0),padx=(0,5))
+            buy_price_etr.grid(row=1,column=2,pady=(40,0),padx=(0,0))
+            sell_price_lb.grid(row=1,column=3,pady=(40,0),padx=(0,0))
+            sell_price_etr.grid(row=1,column=4,pady=(40,0),padx=(0,0))
+            
+
+            capital_gain_tax_var.set(capitalgainlist[0])
+            quantity_lb = Label(input_frame,text="Quality : ",font=font_lb)
+            quantity_etr = Entry(input_frame,text="Quality : ",textvariable=quantity_var)
+            quantity_etr.bind("<KeyRelease>",lambda e : _CalculatorUpdate("Sell",result_frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list))
+            capital_gain_tax_lb = Label(input_frame,text="Capital Gain Tax : ",font=font_lb)
+            capital_gain_tax_opt = OptionMenu(input_frame,capital_gain_tax_var,*capitalgainlist)
+            capital_gain_tax_var.trace("w",lambda e,f,g: _CalculatorUpdate("Sell",result_frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list))
+            quantity_lb.grid(row=2,column=1,pady=(10,0),padx=(0,35))
+            quantity_etr.grid(row=2,column=2,pady=(10,0),padx=(0,0))
+            capital_gain_tax_lb.grid(row=2,column=3,pady=(10,0),padx=(20,0))
+            capital_gain_tax_opt.grid(row=2,column=4,pady=(10,0),padx=(0,0))
+        
+        if True: # Result Widgets
+            result_frame = Frame(Root)
+            result_frame.grid(row=3,column=1)
+            
+            share_amount_lb = Label(result_frame,text="Share Amount : ",font=font_lb)
+            share_amount_input = Label(result_frame,text="*")
+            share_amount_lb.grid(row=1,column=1,pady=(20,0),padx=(0,50))
+            share_amount_input.grid(row=1,column=2,pady=(20,0),padx=(20,0))
+
+            broker_commision_lb = Label(result_frame,text="Broker Commision (*) : " ,font=font_lb)
+            broker_commision_input = Label(result_frame,text="*")
+            broker_commision_lb.grid(row=2,column=1,pady=(5,0),padx=(0,10))
+            broker_commision_input.grid(row=2,column=2,pady=(5,0),padx=(20,0))
+
+            sebon_fee_lb = Label(result_frame,text= "SEBON Fee : ",font=font_lb)
+            sebon_fee_input = Label(result_frame,text="*")
+            sebon_fee_lb.grid(row=3,column=1,pady=(5,0),padx=(0,65))
+            sebon_fee_input.grid(row=3,column=2,pady=(5,0),padx=(20,0))
+
+            dp_fee_lb = Label(result_frame,text="DP Fee : ",font=font_lb)
+            dp_fee_input= Label(result_frame,text="*")
+            dp_fee_lb.grid(row=4,column=1,pady=(5,0),padx=(0,90))
+            dp_fee_input.grid(row=4,column=2,pady=(5,0),padx=(20,0))
+
+            capital_gain_lb = Label(result_frame,text= "Capital Gain : ",font=font_lb)
+            capital_gain_input = Label(result_frame,text="*")
+            capital_gain_lb.grid(row=5,column=1,pady=(5,0),padx=(0,70))
+            capital_gain_input.grid(row=5,column=2,pady=(5,0),padx=(20,0))
+
+            capital_gain_tax_lb = Label(result_frame, text="Capital Gain Tax : ",font=font_lb)
+            capital_gain_tax_input = Label(result_frame,text="*")
+            capital_gain_tax_lb.grid(row=6,column=1,pady=(5,0),padx=(0,45))
+            capital_gain_tax_input.grid(row=6,column=2,pady=(5,0),padx=(20,0))
+
+            total_receivable_lb = Label(result_frame,text= "Total Receivable Amount : ",font=font_lb)
+            total_receivable_input=  Label(result_frame,text="*")
+            total_receivable_lb.grid(row=7,column=1,pady=(5,0),padx=(0,0))
+            total_receivable_input.grid(row=7,column=2,pady=(5,0),padx=(20,0))
+
+        forget_list =[share_amount_input,broker_commision_lb,broker_commision_input,sebon_fee_input,dp_fee_input,capital_gain_input,capital_gain_tax_input,total_receivable_input]
+
+    if _menu == "Average":
+        Root.geometry("600x280")
+        if True: # Menu Widgets
+
+            buy_menu_btn = Button(menu_frame,text="Buy",command=lambda:_Calculator("Buy"),padx=7,pady=1,font=font_btn)
+            sell_menu_btn = Button(menu_frame,text="Sell",command=lambda:_Calculator("Sell"),padx=7,pady=2,font=font_btn)
+            average_menu_btn = Button(menu_frame,text="Average",state=DISABLED,padx=7,pady=2,font=font_btn)
+            home_btn = Button(menu_frame,image=home_icon,padx=3,pady=3,command=_HomeScreen)
+            buy_menu_btn.grid(row=1,column=1,pady=(20,0),padx=(40,0))
+            sell_menu_btn.grid(row=1,column=2,pady=(20,0),padx=(40,0))
+            average_menu_btn.grid(row=1,column=3,pady=(20,0),padx=(40,0))
+            home_btn.grid(row=1,column=4,pady=(20,0),padx=(260,20))
+
+        if True: # Input Widgets
+            
+            input_frame = Frame(Root)
+            input_frame.grid(row=2,column=1)
+            result_frame = Frame(Root)
+            result_frame.grid(row=3,column=1,pady=(20,0))
+            
+            buy_price_1_var = StringVar()
+            quantity_1_var = StringVar()
+            buy_price_2_var = StringVar()
+            quantity_2_var = StringVar()
+            buy_price_3_var = StringVar()
+            quantity_3_var = StringVar()
+            buy_price_4_var = StringVar()
+            quantity_4_var = StringVar()
+            buy_price_5_var = StringVar()
+            quantity_5_var = StringVar()
+            buy_price_6_var = StringVar()
+            quantity_6_var = StringVar()
+            buy_price_7_var = StringVar()
+            quantity_7_var = StringVar()
+            buy_price_8_var = StringVar()
+            quantity_8_var = StringVar()
+            buy_price_9_var = StringVar()
+            quantity_9_var = StringVar()
+            buy_price_10_var = StringVar()
+            quantity_10_var = StringVar()
+            rest_var = [buy_price_3_var,quantity_3_var,buy_price_4_var,quantity_4_var,buy_price_5_var,quantity_5_var,buy_price_6_var,quantity_6_var,buy_price_7_var,quantity_7_var,buy_price_8_var,quantity_8_var,buy_price_9_var,quantity_9_var,buy_price_10_var,quantity_10_var]
+
+            buy_price_1_title = Label(input_frame, text="1st Buy",font=font_lb)
+            buy_price_1_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_1_etr = Entry(input_frame,width=20, textvariable=buy_price_1_var)
+            buy_price_1_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_1_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_1_etr = Entry(input_frame,width=20,textvariable=quantity_1_var)
+            quantity_1_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            buy_price_1_title.grid(row=1,column=1,columnspan=4,pady=(20,0))
+            buy_price_1_lb.grid(row=2,column=1,pady=(5,0))
+            buy_price_1_etr.grid(row=2,column=2,pady=(5,0))
+            quantity_1_lb.grid(row=2,column=3,pady=(5,0))
+            quantity_1_etr.grid(row=2,column=4,pady=(5,0))
+
+            buy_price_2_title = Label(input_frame, text="2nd Buy",font=font_lb)
+            buy_price_2_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_2_etr = Entry(input_frame,width=20, textvariable=buy_price_2_var)
+            buy_price_2_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_2_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_2_etr = Entry(input_frame,width=20,textvariable=quantity_2_var)
+            quantity_2_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            buy_price_2_title.grid(row=3,column=1,columnspan=4,pady=(10,0))
+            buy_price_2_lb.grid(row=4,column=1,pady=(5,0))
+            buy_price_2_etr.grid(row=4,column=2,pady=(5,0))
+            quantity_2_lb.grid(row=4,column=3,pady=(5,0))
+            quantity_2_etr.grid(row=4,column=4,pady=(5,0))
+
+            buy_price_3_title = Label(input_frame, text="3rd Buy",font=font_lb)
+            buy_price_3_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_3_etr = Entry(input_frame,width=20, textvariable=buy_price_3_var)
+            buy_price_3_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_3_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_3_etr = Entry(input_frame,width=20,textvariable=quantity_3_var)
+            quantity_3_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_4_title = Label(input_frame, text="4th Buy",font=font_lb)
+            buy_price_4_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_4_etr = Entry(input_frame,width=20, textvariable=buy_price_4_var)
+            buy_price_4_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_4_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_4_etr = Entry(input_frame,width=20,textvariable=quantity_4_var)
+            quantity_4_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_5_title = Label(input_frame, text="5th Buy",font=font_lb)
+            buy_price_5_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_5_etr = Entry(input_frame,width=20, textvariable=buy_price_5_var)
+            buy_price_5_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_5_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_5_etr = Entry(input_frame,width=20,textvariable=quantity_5_var)
+            quantity_5_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_6_title = Label(input_frame, text="6th Buy",font=font_lb)
+            buy_price_6_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_6_etr = Entry(input_frame,width=20, textvariable=buy_price_6_var)
+            buy_price_6_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_6_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_6_etr = Entry(input_frame,width=20,textvariable=quantity_6_var)
+            quantity_6_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_7_title = Label(input_frame, text="7th Buy",font=font_lb)
+            buy_price_7_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_7_etr = Entry(input_frame,width=20, textvariable=buy_price_7_var)
+            buy_price_7_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_7_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_7_etr = Entry(input_frame,width=20,textvariable=quantity_7_var)
+            quantity_7_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_8_title = Label(input_frame, text="8th Buy",font=font_lb)
+            buy_price_8_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_8_etr = Entry(input_frame,width=20, textvariable=buy_price_8_var)
+            buy_price_8_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_8_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_8_etr = Entry(input_frame,width=20,textvariable=quantity_8_var)
+            quantity_8_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_9_title = Label(input_frame, text="9th Buy",font=font_lb)
+            buy_price_9_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_9_etr = Entry(input_frame,width=20, textvariable=buy_price_9_var)
+            buy_price_9_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_9_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_9_etr = Entry(input_frame,width=20,textvariable=quantity_9_var)
+            quantity_9_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+            buy_price_10_title = Label(input_frame, text="10th Buy",font=font_lb)
+            buy_price_10_lb= Label(input_frame, text="Buy Price : ",font=font_lb)
+            buy_price_10_etr = Entry(input_frame,width=20, textvariable=buy_price_10_var)
+            buy_price_10_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+            quantity_10_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_10_etr = Entry(input_frame,width=20,textvariable=quantity_10_var)
+            quantity_10_etr.bind("<KeyRelease>",lambda e:_CalculatorUpdate("Average",input_frame,buy_price_1_var,quantity_1_var,buy_price_2_var,quantity_2_var,rest_var,_g=result_frame))
+
+        if True: # Result Widgets
+
+
+            add_btn = Button(result_frame,text = "Add",command= lambda: _CalculatorUpdate("Average",input_frame,_f="Add"))
+            delete_btn = Button(result_frame,text = "Delete", command= lambda: _CalculatorUpdate("Average",input_frame,_f="Delete"))
+            result_lb = Label(result_frame,text = "Average Cost Per Stock : ",font=font_lb)
+            result_input = Label(result_frame,text="*")
+            add_btn.grid(row=1,column=1)
+            delete_btn.grid(row=1,column=2)
+            result_lb.grid(row=2,column=1,pady=(20,0))
+            result_input.grid(row=2,column=2,pady=(20,0))
+
+            
+            
+
+    return
 
 def _HomeScreen():
     #Root title,size
@@ -47,7 +710,7 @@ def _HomeScreen():
     
 
 
-    calculator_btn = Button(Root,text="Calculator",font=font_btn,padx=13,pady=3)
+    calculator_btn = Button(Root,text="Calculator",font=font_btn,padx=13,pady=3,command=lambda:_Calculator("Buy"))
     setting_btn = Button(Root,image=setting_icon)
     calculator_btn.grid(row=1,column=1,padx=(15,0),pady=(25,0))
     setting_btn.grid(row=1,column=5,pady=(25,0),padx=(0,15))
@@ -56,11 +719,14 @@ def _HomeScreen():
 Use this feature to search any stock listed on NEPSE.
 This shows basic information about the stock.
     """
+    #Make This Dynamic
+    stock_list = ["(RLFL) Reliance Finance Ltd.","(NIFRA) Nepal Infrastructure Bank Limited","(NABIL) Nabil Bank Limited" ]
+
     search_script_var = StringVar()
     search_script_lb = Label(Root,text="Search Stock : ",font=font_lb)
     search_script_ety = ttk.Combobox(Root,value=stock_list)
     search_script_ety.config(width=30,height=3,textvariable=search_script_var)
-    search_script_ety.bind("<KeyRelease>",lambda e: _Update("HomeScreen_stocksearch",search_script_var,search_script_ety))
+    search_script_ety.bind("<KeyRelease>",lambda e: _Update("HomeScreen_stocksearch",search_script_var,search_script_ety,stock_list))
     #search_script_ety.bind("<Return>",lambda e: SEARCH))
     search_script_btn = Button(Root,text="Search",padx=13,pady=3,font=font_btn)
     search_script_info = Button(Root,image=info_icon,command= lambda: messagebox.showinfo("Search Stock Feature",search_script_info_para))
@@ -104,8 +770,7 @@ After executing the given instruction it will automatically update porfolio if a
     exit_btn = Button(Root,text="Exit",padx=13,pady=3,command=quit,font=("Arial",10,"bold"))
     exit_btn.grid(row=5,column=5,padx=(0,5),pady=(25,0))
     return
-
-def _Update(_todo,_a=None,_b=None):
+def _Update(_todo,_a=None,_b=None,_c=None):
     
     if _todo == "TermsAndCondition_checkbox":
         #Update next button
@@ -150,6 +815,7 @@ def _Update(_todo,_a=None,_b=None):
         _HomeScreen()
 
     if _todo=="HomeScreen_stocksearch":
+        stock_list=_c
         combo_box = _b
         combo_box_var=_a
         value=combo_box_var.get()
@@ -174,7 +840,7 @@ def _HowToUse():
     title_label = Label(howtouse_window,text="HowTouse",font=("Arial",12,"bold"),justify=CENTER)
     title_label.grid(row=1,column=1,columnspan=3,pady=10)
 
-
+    
 
     howtouse_paragraph = Text(howtouse_window,height=10,width=43,bg="#fffeea",relief=SUNKEN)
     howtouse_paragraph.grid(row=2,column=1,columnspan=3,padx=25)
@@ -245,7 +911,7 @@ def _Main():
     if Config["TermsAndCondition"] != True:
         #Run TermsandCondition:
         _TermsAndCondition()
-    
+        return
     if Config["TermsAndCondition"] == True and Config["HowToUse"] == False:
         #Run HowToUse
         _HomeScreen()
