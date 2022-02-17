@@ -1,4 +1,7 @@
-json
-tkinter
 Pillow
-sqlite3
+requests
+selenium
+pytz
+beautifulsoup4
+pytesseract
+opencv-python
