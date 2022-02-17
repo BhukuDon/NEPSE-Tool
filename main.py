@@ -7,7 +7,6 @@ Root = Tk()
 Root.iconbitmap("./lib/icons/logo.ico")
 
 #Dymanic Chrome driver path
-Chrome_Driver_Path = "./chromedriver.exe"
 
 #Icons
 if True:
@@ -95,7 +94,7 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         # Update config 
         Config['TermsAndCondition'] = True
         with open ("./data/config.json","w") as write:
-            json.dump(Config,write)
+            json.dump(Config,write,indent=4)
         write.close()
         if Config["HowToUse"] == False:
             _HomeScreen()
@@ -111,7 +110,7 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         if check_donotshow == True:
             Config["HowToUse"] = True
             with open("./data/config.json","w") as write_config:
-                json.dump(Config,write_config)
+                json.dump(Config,write_config,indent=4)
             write_config.close()
             _b.destroy()
             _HomeScreen()
@@ -120,7 +119,7 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         _HomeScreen()
         return
 
-    if _todo=="HomeScreen_stocksearch":
+    if _todo == "HomeScreen_stocksearch":
         stock_list=_c
         combo_box = _b
         combo_box_var=_a
@@ -165,6 +164,12 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
             try: 
                 broker_no  = int(broker_no)
             except:
+                messagebox.showerror("Error !","Invalid Broker No.")
+                return
+            with open ("./data/broker.json","r") as read:
+                brk_chk = json.load(read)
+            read.close()
+            if broker_no not in brk_chk:
                 messagebox.showerror("Error !","Invalid Broker No.")
                 return
         
@@ -248,6 +253,21 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         messagebox.showinfo("Success !","You have successfully edited profile.")
         _Settings()
         return
+
+    if _todo == "CreateProfile_delete":
+        nickname = _a.get()
+        conn = sqlite3.connect("./data/heathens.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM profile WHERE nickname = :nickname",{"nickname":nickname})
+        conn.commit()
+        conn.close()
+        Config["ProfileSelected"] = False
+        Config["Profileoid"] = 0
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        _Settings()
+        return
     
     if _todo == "Settings_selectprofile" :
         profile_selected  = _a.get() 
@@ -266,9 +286,29 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         Config["Profileoid"] = data[0][4]
         # Dumping oid and profile is selected in config
         with open("./data/config.json","w") as write_config:
-            json.dump(Config,write_config)
+            json.dump(Config,write_config,indent=4)
         write_config.close()
         _Settings()
+    
+    if _todo == "Settings_tesseract_path":
+        # Asking for Tesseract OSR folder location
+        filedir = filedialog.askdirectory(title="Select Tesseract-ORC")
+        
+        # If folder contians tesseract.exe dump location to config else dump fasle
+        if Path(f"{filedir}/tesseract.exe").is_file():
+            path = (f"{filedir}/tesseract.exe")
+            Config["PathToTesseract"] = path
+            with open("./data/config.json","w") as write:
+                json.dump(Config,write,indent=4)
+            write.close()
+            messagebox.showinfo("Success !","You set Tesseract OCR folder correctly.")
+            return
+        Config["PathToTesseract"] = False
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        messagebox.showerror("Error !","You set Tesseract OCR folder incorrectly.")
+        return
     
     if _todo == "Settings_reset" :
         response=messagebox.askyesno("Reset","This will reset the program. You will lose all data including profile and porfolio.\n Do you want to continue?")
@@ -277,10 +317,24 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
             Config["Profileoid"] = 0
             Config["TermsAndCondition"] = False
             Config["HowToUse"] = False
+            Config["PathToChromeDriver"] = False
+            Config["MarketOpen"] = False
+            Config["PathToTesseract"] = False
             with open("./data/config.json","w") as write_config:
-                json.dump(Config,write_config)
+                json.dump(Config,write_config,indent=4)
             write_config.close()
             os.remove("./data/heathens.db")
+
+            # remove zip file
+            download_path = glob.glob("./lib/downloads/*.zip") 
+
+            for zip in download_path:
+                os.remove(zip)
+            # removing driver
+            
+            driver_path = glob.glob("./lib/drivers/*") 
+            for folder in driver_path:
+                shutil.rmtree(folder)
             quit()
             return
         return
@@ -346,7 +400,7 @@ class _class_TMS:
             if Config["MarketOpen"] != False:
                 Config["MarketOpen"] = False
                 with open("./data/config.json","w") as write:
-                    json.dump(Config,write)
+                    json.dump(Config,write,indent=4)
                 write.close()
             print("MarketClosed Day")
 
@@ -393,7 +447,7 @@ class _class_TMS:
             if Config["MarketOpen"] != False:
                 Config["MarketOpen"] = False
                 with open("./data/config.json","w") as write:
-                    json.dump(Config,write)
+                    json.dump(Config,write,indent=4)
                 write.close()
             print("MarketClosed Hr")
             
@@ -416,14 +470,14 @@ class _class_TMS:
                 if Config["MarketOpen"] != False:
                     Config["MarketOpen"] = False
                     with open("./data/config.json","w") as write:
-                        json.dump(Config,write)
+                        json.dump(Config,write,indent=4)
                     write.close()
                 print("Market Closed")
                 return False
             
             Config["MarketOpen"] = True
             with open("./data/config.json","w") as write:
-                json.dump(Config,write)
+                json.dump(Config,write,indent=4)
             write.close()
             print("Market Open")
             return True       
@@ -439,7 +493,7 @@ class _class_TMS:
 
 
             try:
-                driver = webdriver.Chrome(Chrome_Driver_Path)
+                driver = webdriver.Chrome(Config["PathToChromeDriver"])
                 driver.get("https://nepsealpha.com/trading/chart")
                 iframe = WebDriverWait(driver, 60).until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/div[1]/iframe'))
@@ -486,7 +540,7 @@ class _class_TMS:
             if status.get_attribute("innerText")[:11] == "MARKET OPEN":
                 Config["MarketOpen"] = True
                 with open("./data/config.json","w") as write:
-                    json.dump(Config,write)
+                    json.dump(Config,write,indent=4)
                 write.close()
                 print("Market Open")
 
@@ -495,7 +549,7 @@ class _class_TMS:
                 if Config["MarketOpen"] != False:
                     Config["MarketOpen"] = False
                     with open("./data/config.json","w") as write:
-                        json.dump(Config,write)
+                        json.dump(Config,write,indent=4)
                     write.close()
 
                 return False
@@ -766,7 +820,7 @@ def _TMS(_todo,_info_list):
                         low_ltp = ltp_open_scrape_low[0]
                     # If ltp is more than low price buy
                     if ltp_open_scrape_low[0] > low_ltp:
-                        driver = webdriver.Chrome(Chrome_Driver_Path)
+                        driver = webdriver.Chrome(Config["PathToChromeDriver"])
                         _class_TMS(driver=driver)._insertclientid()
                         _class_TMS(driver=driver)._insertpassword()
                         _class_TMS(driver=driver)._move()
@@ -834,7 +888,7 @@ def _TMS(_todo,_info_list):
                         high_ltp = nepse_alpha_fetched_high[0]
                     # if ltp is lesser than high ltp Sell
                     if nepse_alpha_fetched_high[0] < high_ltp:
-                        driver = webdriver.Chrome(Chrome_Driver_Path)
+                        driver = webdriver.Chrome(Config["PathToChromeDriver"])
                         _class_TMS(driver=driver)._insertclientid()
                         _class_TMS(driver=driver)._insertpassword()
                         _class_TMS(driver=driver)._move()
@@ -892,7 +946,7 @@ def _ValidateAutoBuySell(_todo,_var_list):
         #else append stock to stock.json
         read_stock.append(stock)
         with open ("./data/stock.json","w") as write_temp :
-            json.dump(read_stock,write_temp)
+            json.dump(read_stock,write_temp,indent=4)
         write_temp.close()
     
     if _todo == "Buy":
@@ -958,7 +1012,7 @@ def _AutoBuySell(_menu):
     #Setting MarketOpen to its default value False
     Config["MarketOpen"] = False
     with open("./data/config.json","w") as write:
-        json.dump(Config,write)
+        json.dump(Config,write,indent=4)
     write.close()
 
     # Seting Frames 
@@ -968,7 +1022,7 @@ def _AutoBuySell(_menu):
     input_frame.grid(row=2,column=1,pady=(35,0))
     
     #Disable everything and send messagebox if profile not selected
-    if Config["ProfileSelected"] != True:
+    if Config["ProfileSelected"] == False or Config["PathToTesseract"] == False or Config["PathToChromeDriver"] == False:
 
         buy_btn = Button(menu_frame,text = "Buy",state= DISABLED,padx=13,pady=3,font=font_btn)
         sell_btn = Button(menu_frame,text = "Sell",state= DISABLED,padx=13,pady=3,font=font_btn)
@@ -1016,7 +1070,12 @@ def _AutoBuySell(_menu):
 
         
         # Showing warning
-        messagebox.showwarning("Warning !","You cannot use this feature unless you setup your profile.'\n To setup your profile please go to Settings > Create Profile and seleted your profile in settings.")
+        if Config["ProfileSelected"] == False:
+            messagebox.showwarning("Warning !","You cannot use this feature unless you setup your profile.'\n To setup your profile please go to Settings > Create Profile and seleted your profile in settings.")
+        if Config["PathToTesseract"] == False:
+            messagebox.showwarning("Warning !","You cannot use this feature unless you install Tesseract OCR and set its folder in Settings.'\n To go to https://github.com/UB-Mannheim/tesseract/wiki and install it. Or you can also install it with the setup i have provided in setup folder.")
+        if Config["PathToChromeDriver"] == False:
+            messagebox.showwarning("Warning !","Chrome Driver not found either you haven't installed Chrome or the driver didn't download correctly.")
         return
 
     profile_text = _Database()._fetchselectedprofile()[0]
@@ -1844,6 +1903,9 @@ def _ShowProfile():
     broker_etr.grid(row=5,column=2,pady=(10,0))
 
     var =[nickname_var,client_id_var,password_var,broker_var]
+    
+    del_btn = Button(Root,text = "Delete",font=font_btn,padx=13,pady=3,command = lambda:_GeneralUpdate("CreateProfile_delete",nickname_var))
+    del_btn.grid(row=6,column=1,pady=(50,0),padx=(40,0))
     save_btn = Button(Root,text="Save",font=font_btn,padx=13,pady=3,command = lambda:_GeneralUpdate("CreateProfile_edit",var))
     save_btn.grid(row=6,column=3,pady=(50,0),padx=(240,0))
     return
@@ -1897,6 +1959,19 @@ def _Settings():
     else:
         show_profile_details_btn = Button(Root,text="Show Profile Details",font=font_btn,padx=13,pady=3,command=lambda:messagebox.showerror("Error !","Please select a profile first."))
     show_profile_details_btn.grid(row=4,column=1,columnspan=2,pady=(20,0),padx=(0,0))
+    
+    info_msg = """
+You'll need to install Tesseract-OCR engine in order to use Auto Buy & Sell feature.
+Please go to https://github.com/UB-Mannheim/tesseract/wiki and install it. 
+Or you can also install it with the setup i have provided in setup folder.
+After installing set its folder by click on Tesseract-OCR Button.
+    """
+
+    tesseract_path_btn = Button(Root,text="Tesseract-OCR",font=font_btn,padx=13,pady=3,command=lambda:_GeneralUpdate("Settings_tesseract_path"))
+    tesseract_path_info = Button(Root, image = info_icon,command = lambda: messagebox.showinfo("Tesseract-OCR",info_msg))
+    tesseract_path_btn.grid(row=5,column=1,padx=(10,0),pady=(0,0))
+    tesseract_path_info.grid(row=5,column=2)
+
     reset_btn = Button(Root,text="Reset",font=("Arial",10,"bold"),padx=13,pady=3,command=lambda:_GeneralUpdate("Settings_reset"))
     reset_btn.grid(row=5,column=3,pady=(35,0),padx=(230,10))
     
@@ -2055,12 +2130,60 @@ def _TermsAndCondition():
     agree_check_box= Checkbutton(Root, text= "Agree to terms and condition",variable=check_var,command=lambda:_GeneralUpdate("TermsAndCondition_checkbox",check_var,next_btn))
     agree_check_box.grid(row=3,column=1,columnspan=2,pady=(30,0))    
 
+def _CheckChrome():
+    while True: # For Checking Chrome And Download If Not Avialable
+        
+        # Check Chrome Version
+        check = 'reg query "HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon" /v version'
+        result = subprocess.getoutput(check)
+        chrome_version = (result.split()[3])
+        
+        #Check if driver for that version is available
+        path_extracted = './lib/drivers/{}/chromedriver.exe'.format(chrome_version)
+        path_unextracted = './lib/drivers/{}/'.format(chrome_version)
+        path_download = "./lib/downloads/{}.zip".format(chrome_version)
+        if Path(path_extracted).is_file():
+            Config["PathToChromeDriver"] = path_extracted
+            with open ("./data/config.json","w") as write:
+                json.dump(Config,write,indent=4)
+            write.close()
+            break
+        else:
+            #Download And Unzip Driver And Set Path
+            try:
+                url = "https://chromedriver.storage.googleapis.com/{}/chromedriver_win32.zip".format(chrome_version)
+                urllib.request.urlretrieve(url, path_download)
+            except ConnectionError as e1:
+                with open("./data/error.txt","a") as txt_write:
+                    txt_write.writelines("Exception At Chrome Browser :")
+                    txt_write.writelines("\n")
+                    txt_write.writelines(f"Chrome Version{chrome_version}\n")
+                    txt_write.writelines(f"{e1}")
+                    txt_write.writelines("\n")
+                txt_write.close()
+                break
+            except Exception as e:
+                with open("./data/error.txt","a") as txt_write:
+                    txt_write.writelines("Exception At Chrome Browser :")
+                    txt_write.writelines("\n")
+                    txt_write.writelines(f"Chrome Version{chrome_version}\n")
+                    txt_write.writelines(f"{e}")
+                    txt_write.writelines("\n")
+                txt_write.close()
+                break
+            else:
+                with zipfile.ZipFile(path_download, 'r') as zip_ref:
+                    zip_ref.extractall(path=path_unextracted)
+    return
+
 def _Main():
     # Clearing error log
     with open("./data/error.txt","w") as txt_write:
         txt_write.truncate(0)
     txt_write.close()
     
+    # Checking Chrome Driver
+    _CheckChrome()
 
     # Try creating db and new table 
     try: 
