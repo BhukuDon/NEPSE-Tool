@@ -1,3 +1,6 @@
+import sys
+# For threding task freezing tkinter
+import threading
 # For config file
 import json
 # To delete files

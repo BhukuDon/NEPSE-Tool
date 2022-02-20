@@ -5,5 +5,7 @@
     "Profileoid": 0,
     "MarketOpen": false,
     "PathToTesseract": false,
-    "PathToChromeDriver": false
+    "PathToChromeDriver": false,
+    "RunningBuy": false,
+    "RunningSell": false
 }

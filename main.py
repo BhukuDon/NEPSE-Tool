@@ -14,6 +14,33 @@ if True:
     home_icon = ImageTk.PhotoImage(Image.open("./lib/icons/home.png").resize((25,25),Image.ANTIALIAS))         
     info_icon = ImageTk.PhotoImage(Image.open("./lib/icons/info.png").resize((20,20),Image.ANTIALIAS)) 
 
+def _Quit(_todo = None):
+    if _todo == "Buy":
+        Config["RunningBuy"] = False
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        return
+    if _todo == "Sell":
+        Config["RunningSell"] = False
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        return
+
+    # If auto buy and sell is running ask to quit
+    if Config["RunningBuy"] == True or Config["RunningSell"] == True:
+        ask = messagebox.askyesnocancel("Are you sure ?","You have Auto Buy Sell Running are you sure you want to exit ?")
+        if ask != True:
+            return
+    
+    Config["RunningBuy"] = False
+    Config["RunningSell"] = False
+    with open("./data/config.json","w") as write:
+        json.dump(Config,write,indent=4)
+    write.close()
+    quit()
+
 class _Calc:
     # Calculation function.
     def __init__(self,buyprice=None,quantity=None,sellprice=None,capitalgain=None):
@@ -270,6 +297,11 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         return
     
     if _todo == "Settings_selectprofile" :
+        # While auto buy sell running cannot change prfile
+        if Config["RunningBuy"] == True or Config["RunningSell"] == True:
+            messagebox.showwarning("Warning !","You cannot change profile while Auto Buy Or Sell is running : ")
+            return
+        
         profile_selected  = _a.get() 
         # If profile is not created do not select any thing
         if profile_selected == "Crete Profile":
@@ -365,8 +397,14 @@ class _Database :
             return False
         return data
 
-def _Wait(_time):
+def _Wait(_time,_from):
     for x in range(_time):
+        if _from == "Buy":
+            if Config["RunningBuy"] != True:
+                return
+        if _from == "Sell":
+            if Config["RunningSell"] != True:
+                return
         print(x+1, "Waiting")
         time.sleep(1)
 
@@ -415,7 +453,7 @@ class _class_TMS:
             if tommorow_day not in market_open_days:
                 time_to_sleep = ((24 - hour) + 10)*60
                 time_to_sleep = (60-min) + time_to_sleep
-                time_to_sleep = time_to_sleep
+                time_to_sleep = time_to_sleep * 60
                 tommorow_day = week.index(tommorow_day)+1
                 try :
                     tommorow_day = week[tommorow_day]
@@ -441,7 +479,7 @@ class _class_TMS:
 
                         if tommorow_day not in market_open_days:
                             time_to_sleep = time_to_sleep + (24 * 60 )
-
+            print("days")
             return time_to_sleep
         if hour < 10 or hour > 14: 
             if Config["MarketOpen"] != False:
@@ -704,9 +742,14 @@ class _class_TMS:
         action_button= self.driver.find_element(By.XPATH,execute_btn_xpath)   
 
         #action_button.click()
-        time.sleep(10000)
+        time.sleep(100)
         self.driver.quit()
+        Config["RunningBuy"] = False
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
         print("Done")
+        _AutoBuySell("Buy")
         return
     def _sell(self):
     
@@ -737,9 +780,14 @@ class _class_TMS:
         action_button= self.driver.find_element(By.XPATH,execute_btn_xpath)   
 
         action_button.click()
-        time.sleep(10)
+        time.sleep(100)
         self.driver.quit()
         print("Done")
+        Config["RunningSell"] = False
+        with open("./data/config.json","w") as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        _AutoBuySell("Sell")
         return
 
 def _TMS(_todo,_info_list):
@@ -751,7 +799,13 @@ def _TMS(_todo,_info_list):
     time_sleep = 1
 
     while True:
-        _Wait(time_sleep)
+        if _todo == "Buy":
+            if Config["RunningBuy"] != True:
+                return
+        if _todo == "Sell":
+            if Config["RunningSell"] != True:
+                return
+        _Wait(time_sleep,_todo)
 
         # Checking Market open or not
         open_or_not = _class_TMS()._marketstatus()
@@ -785,6 +839,7 @@ def _TMS(_todo,_info_list):
         
         # Buying Stock
         if _todo == "Buy": 
+
             #list = [order_type,stock,quantity,price]
             buy_price = _info_list[3]
 
@@ -797,7 +852,7 @@ def _TMS(_todo,_info_list):
                 low_ltp = ltp
                 time_var_low = 1
                 while True:
-                    _Wait(time_var_low)
+                    _Wait(time_var_low,_todo)
                     market_status_low = _class_TMS()._marketstatus()
 
                     #if market Closed
@@ -840,6 +895,8 @@ def _TMS(_todo,_info_list):
         
         # Selling Stock
         if _todo == "Sell":
+
+            
             #list = [order_type,stock,quantity,stoploss,target]
             
             stoploss = _info_list[3]
@@ -866,7 +923,7 @@ def _TMS(_todo,_info_list):
                 time_var_high = 1
                 high_ltp = ltp
                 while True:
-                    _Wait(time_var_high)
+                    _Wait(time_var_high,_todo)
                     market_status_high = _class_TMS()._marketstatus()
 
                     #if market Close
@@ -965,6 +1022,13 @@ def _ValidateAutoBuySell(_todo,_var_list):
             messagebox.showerror("Error !","Price must be number (Integer/Float).")
         
         list = [order_type,stock,quantity,price]
+
+        # Set running buy value true
+        Config["RunningBuy"] = True
+        with open("./data/config.json",'w') as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        _AutoBuySell("Buy")
         _TMS(_todo,list)
         return
 
@@ -994,6 +1058,13 @@ def _ValidateAutoBuySell(_todo,_var_list):
             return 
 
         list = [order_type,stock,quantity,stoploss,target]
+        
+        #var_list = [order_type_var,stock_var,quantity_var,stoploss,target]
+        Config["RunningSell"] = True
+        with open("./data/config.json",'w') as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+        _AutoBuySell("Sell")
         _TMS(_todo,list)
         return
     return
@@ -1123,8 +1194,18 @@ def _AutoBuySell(_menu):
         price_info.grid(row=4,column=3,padx=(25,0),pady=(10,0))
 
         var_list = [order_type_var,stock_var,quantity_var,price_var]
+        
+        if Config["RunningBuy"] == True:
+            running = Label(input_frame,text = "Running",font=font_lb)
+            running.grid(row=6,column=1,columnspan=2)
+        
+            buy_btn  = Button(input_frame,text="Buy",state = DISABLED,font=font_btn,padx=13,pady=3)
+            buy_btn.grid(row=5,column=1,pady=(20,0))
 
-        buy_btn  = Button(input_frame,text="Buy",command=lambda:_ValidateAutoBuySell("Buy",var_list),font=font_btn,padx=13,pady=3)
+            quit_btn  = Button(input_frame,text="Quit",command = lambda: _Quit("Buy"),font=font_btn,padx=13,pady=3)
+            quit_btn.grid(row=5,column=2,pady=(20,0))
+            return
+        buy_btn  = Button(input_frame,text="Buy",command=lambda: threading.Thread(target=lambda: _ValidateAutoBuySell("Buy",var_list)).start(),font=font_btn,padx=13,pady=3)
         buy_btn.grid(row=5,column=1,columnspan=2,pady=(20,0))
         return
 
@@ -1174,8 +1255,18 @@ def _AutoBuySell(_menu):
 
         var_list = [order_type_var,stock_var,quantity_var,stoploss_var,target_var]
 
-        buy_btn  = Button(input_frame,text="Sell",command=lambda:_ValidateAutoBuySell("Sell",var_list),padx=13,pady=3,font=font_btn)
-        buy_btn.grid(row=6,column=1,columnspan=2,pady=(15,0))
+        if Config["RunningSell"] == True:
+            running = Label(input_frame,text = "Running",font=font_lb)
+            running.grid(row=7,column=1,columnspan=2)
+        
+            sell_btn  = Button(input_frame,text="Sell",state=DISABLED,padx=13,pady=3,font=font_btn)
+            sell_btn.grid(row=6,column=1,pady=(15,0))
+
+            quit_btn  = Button(input_frame,text="Quit",command = lambda: _Quit("Sell"),font=font_btn,padx=13,pady=3)
+            quit_btn.grid(row=6,column=2,pady=(15,0))
+            return
+        sell_btn  = Button(input_frame,text="Sell",command=lambda: threading.Thread(target=lambda: _ValidateAutoBuySell("Sell",var_list)).start(),padx=13,pady=3,font=font_btn)
+        sell_btn.grid(row=6,column=1,columnspan=2,pady=(15,0))
         return
 
     return
@@ -1195,53 +1286,25 @@ def _CalculatorUpdate(_todo,_frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=No
         
         if buy_price==0 or quantity == 0:
             #Forgeting and then re-assigning result labels as "*".
-            _c[0].destroy()
-            _c[0] = Label(_frame,text="*")
-            _c[0].grid(row=1,column=2,pady=(25,0))
-            _c[1].destroy()
-            _c[2].destroy()
-            _c[1] = Label(_frame,text='Broker Commision (*) : ',font=font_lb)
-            _c[2] = Label(_frame,text="*")
-            _c[1].grid(row=2,column=1,padx=(0,0),pady=(5,0))        
-            _c[2].grid(row=2,column=2,pady=(5,0)) 
-            _c[3].destroy()
-            _c[3] = Label(_frame,text="*")    
-            _c[3].grid(row=3,column=2,pady=(5,0))        
-            _c[4].destroy()
-            _c[4] = Label(_frame,text="*")
-            _c[4].grid(row=4,column=2,pady=(5,0))        
-            _c[5].destroy()
-            _c[5] = Label(_frame,text="*")
-            _c[5].grid(row=5,column=2,pady=(5,0))        
-            _c[6].destroy()
-            _c[6] = Label(_frame,text="*")
-            _c[6].grid(row=6,column=2,pady=(5,0))
+            _c[0].config(text="*")
+            _c[1].config(text='Broker Commision (*) : ')
+            _c[2].config(text="*")
+            _c[3].config(text="*")    
+            _c[4].config(text="*")
+            _c[5].config(text="*")
+            _c[6].config(text="*")
             return  
         
         if True: # if both buy&quantity is not zero
             #Forgeting and then re-assigning result labels as respectative answers.
             ans = _Calc(buy_price,quantity)._buyfunc()
-            _c[0].destroy()
-            _c[0] = Label(_frame,text="{:.2f}".format(ans[0]))
-            _c[0].grid(row=1,column=2,pady=(25,0))
-            _c[1].destroy()
-            _c[2].destroy()
-            _c[1] = Label(_frame,text='Broker Commision ({}) : '.format(ans[1]),font=font_lb)
-            _c[2] = Label(_frame,text="{:.2f}".format(ans[2]))
-            _c[1].grid(row=2,column=1,padx=(0,0),pady=(5,0))        
-            _c[2].grid(row=2,column=2,pady=(5,0)) 
-            _c[3].destroy()
-            _c[3] = Label(_frame,text="{:.2f}".format(ans[3]))    
-            _c[3].grid(row=3,column=2,pady=(5,0))        
-            _c[4].destroy()
-            _c[4] = Label(_frame,text="{:.2f}".format(ans[4]))
-            _c[4].grid(row=4,column=2,pady=(5,0))        
-            _c[5].destroy()
-            _c[5] = Label(_frame,text="{:.2f}".format(ans[5]))
-            _c[5].grid(row=5,column=2,pady=(5,0))        
-            _c[6].destroy()
-            _c[6] = Label(_frame,text="{:.2f}".format(ans[6]))
-            _c[6].grid(row=6,column=2,pady=(5,0))    
+            _c[0].config(text="{:.2f}".format(ans[0]))
+            _c[1].config(text='Broker Commision ({}) : '.format(ans[1]))
+            _c[2].config(text="{:.2f}".format(ans[2]))
+            _c[3].config(text="{:.2f}".format(ans[3]))    
+            _c[4].config(text="{:.2f}".format(ans[4]))
+            _c[5].config(text="{:.2f}".format(ans[5]))
+            _c[6].config(text="{:.2f}".format(ans[6]))
    
     if _todo == "Sell":
         #"Sell",result__frame,buy_price_var,sell_price_var,quantity_var,capital_gain_tax_var,forget_list
@@ -1264,36 +1327,14 @@ def _CalculatorUpdate(_todo,_frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=No
 
         if buy_price == 0 or sell_price == 0 or quantity == 0 :
             # Destroying and re-assigning label as "*"
-            _e[0].destroy()
-            _e[0] = Label(_frame,text="*")
-            _e[0].grid(row=1,column=2,pady=(20,0),padx=(20,0))
-
-            _e[1].destroy()
-            _e[2].destroy()
-            _e[1] = Label(_frame,text="Broker Commision (*) : ",font=font_lb )
-            _e[2] = Label(_frame,text="*")
-            _e[1].grid(row=2,column=1,pady=(5,0),padx=(0,10))
-            _e[2].grid(row=2,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[3].destroy()
-            _e[3] = Label(_frame,text="*")
-            _e[3].grid(row=3,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[4].destroy()
-            _e[4]= Label(_frame,text="*")
-            _e[4].grid(row=4,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[5].destroy()
-            _e[5] = Label(_frame,text="*")
-            _e[5].grid(row=5,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[6].destroy()
-            _e[6] = Label(_frame,text="*")
-            _e[6].grid(row=6,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[7].destroy()
-            _e[7]=  Label(_frame,text="*")
-            _e[7].grid(row=7,column=2,pady=(5,0),padx=(20,0))
+            _e[0].config(text="*")
+            _e[1].config(text="Broker Commision (*) : ")
+            _e[2].config(text="*")
+            _e[3].config(text="*")
+            _e[4].config(text="*")
+            _e[5].config(text="*")
+            _e[6].config(text="*")
+            _e[7].config(text="*")
             
             # try to destroy profit or loss label if declared
             for temp in _frame.winfo_children():
@@ -1307,36 +1348,14 @@ def _CalculatorUpdate(_todo,_frame,_a=None,_b=None,_c=None,_d=None,_e=None,_f=No
         if True:
             ans = _Calc(buy_price,quantity,sell_price,capital_gain_tax)._sellfunc()
             
-            _e[0].destroy()
-            _e[0] = Label(_frame,text="{:.2f}".format(ans[0]))
-            _e[0].grid(row=1,column=2,pady=(20,0),padx=(20,0))
-
-            _e[1].destroy()
-            _e[2].destroy()
-            _e[1] = Label(_frame,text=f"Broker Commision ({ans[1]}) : " ,font=font_lb)
-            _e[2] = Label(_frame,text="{:.2f}".format(ans[2]))
-            _e[1].grid(row=2,column=1,pady=(5,0),padx=(0,10))
-            _e[2].grid(row=2,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[3].destroy()
-            _e[3] = Label(_frame,text="{:.2f}".format(ans[3]))
-            _e[3].grid(row=3,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[4].destroy()
-            _e[4]= Label(_frame,text="{:.2f}".format(ans[4]))
-            _e[4].grid(row=4,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[5].destroy()
-            _e[5] = Label(_frame,text="{:.2f}".format(ans[5]))
-            _e[5].grid(row=5,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[6].destroy()
-            _e[6] = Label(_frame,text="{:.2f}".format(ans[6]))
-            _e[6].grid(row=6,column=2,pady=(5,0),padx=(20,0))
-            
-            _e[7].destroy()
-            _e[7]=  Label(_frame,text="{:.2f}".format(ans[7]))
-            _e[7].grid(row=7,column=2,pady=(5,0),padx=(20,0))
+            _e[0].config(text="{:.2f}".format(ans[0]))
+            _e[1].config(text=f"Broker Commision ({ans[1]}) : ")
+            _e[2].config(text="{:.2f}".format(ans[2]))
+            _e[3].config(text="{:.2f}".format(ans[3]))
+            _e[4].config(text="{:.2f}".format(ans[4]))
+            _e[5].config(text="{:.2f}".format(ans[5]))
+            _e[6].config(text="{:.2f}".format(ans[6]))
+            _e[7].config(text="{:.2f}".format(ans[7]))
             
             # try to destroy profit or loss label if declared
             for temp in _frame.winfo_children():
@@ -2047,7 +2066,7 @@ After executing the given instruction it will automatically update porfolio if a
     auto_buy_sell_btn.grid(row=4,column=2,padx=(5,0),pady=(20,0))
     auto_buy_sell_info.grid(row=4,column=3,padx=(0,40),pady=(20,0))
 
-    exit_btn = Button(Root,text="Exit",padx=13,pady=3,command=quit,font=("Arial",10,"bold"))
+    exit_btn = Button(Root,text="Exit",padx=13,pady=3,command=_Quit,font=("Arial",10,"bold"))
     exit_btn.grid(row=5,column=5,padx=(0,5),pady=(25,0))
     return
 
@@ -2177,13 +2196,28 @@ def _CheckChrome():
     return
 
 def _Main():
+    # setting default 
+    
     # Clearing error log
     with open("./data/error.txt","w") as txt_write:
         txt_write.truncate(0)
     txt_write.close()
     
+    # Setting default value false for running RunningBuy and RunningBuy
+    if Config["RunningBuy"] == True:
+        Config["RunningBuy"] = False
+        with open("./data/config.json",'w') as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+    
+    if Config["RunningSell"] == True:
+        Config["RunningSell"] = False
+        with open("./data/config.json",'w') as write:
+            json.dump(Config,write,indent=4)
+        write.close()
+    
     # Checking Chrome Driver
-    _CheckChrome()
+    threading.Thread(target=_CheckChrome).start()
 
     # Try creating db and new table 
     try: 
@@ -2213,9 +2247,8 @@ def _Main():
         return
     _HomeScreen()
 
+if __name__ == "__main__":
 
-_Main()
-
-
+    _Main()
 #Root Window Loop
 Root.mainloop()
