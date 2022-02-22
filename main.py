@@ -14,31 +14,44 @@ if True:
     home_icon = ImageTk.PhotoImage(Image.open("./lib/icons/home.png").resize((25,25),Image.ANTIALIAS))         
     info_icon = ImageTk.PhotoImage(Image.open("./lib/icons/info.png").resize((20,20),Image.ANTIALIAS)) 
 
-def _Quit(_todo = None):
-    if _todo == "Buy":
-        Config["RunningBuy"] = False
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
-        return
-    if _todo == "Sell":
-        Config["RunningSell"] = False
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
+# Read/Write Config File
+def _Config(_mode,_key,_value=None):
+    if _mode == "r":
+        with open("./data/config.json","r") as read:
+            read_config = json.load(read)
+        read.close()
+        result = read_config[_key]
+        return result
+    if _mode == "w":
+        with open ("./data/config.json","r") as read:
+            read_config = json.load(read)
+        read.close()
+        read_config[_key] = _value
+        with open ("./data/config.json","w") as write:
+            json.dump(read_config,write,indent=4)
         write.close()
         return
 
+def _Quit(_todo = None):
+    if _todo == "Buy":
+        # Change RunningBuy value to False
+        _Config("w","RunningBuy",False)
+        _AutoBuySell("Buy")
+        return
+    if _todo == "Sell":
+        # Change RunningSell value to False
+        _Config("w","RunningSell",False)
+        _AutoBuySell("Sell")
+        return
+
     # If auto buy and sell is running ask to quit
-    if Config["RunningBuy"] == True or Config["RunningSell"] == True:
+    if _Config("r","RunningBuy") != False or _Config("r","RunningSell") != False:
         ask = messagebox.askyesnocancel("Are you sure ?","You have Auto Buy Sell Running are you sure you want to exit ?")
         if ask != True:
             return
     
-    Config["RunningBuy"] = False
-    Config["RunningSell"] = False
-    with open("./data/config.json","w") as write:
-        json.dump(Config,write,indent=4)
-    write.close()
+    _Config("w","RunningBuy",False)
+    _Config("w","RunningSell",False)
     quit()
 
 class _Calc:
@@ -119,11 +132,8 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
     if _todo == "TermsAndCondition_btn":
 
         # Update config 
-        Config['TermsAndCondition'] = True
-        with open ("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
-        if Config["HowToUse"] == False:
+        _Config("w","TermsAndCondition",True)
+        if _Config("r","HowToUse") == False:
             _HomeScreen()
             _HowToUse()
             return
@@ -135,10 +145,7 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         #_b = howtouse_window
 
         if check_donotshow == True:
-            Config["HowToUse"] = True
-            with open("./data/config.json","w") as write_config:
-                json.dump(Config,write_config,indent=4)
-            write_config.close()
+            _Config("w","HowToUse",True)
             _b.destroy()
             _HomeScreen()
             return
@@ -288,17 +295,16 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         cursor.execute("DELETE FROM profile WHERE nickname = :nickname",{"nickname":nickname})
         conn.commit()
         conn.close()
-        Config["ProfileSelected"] = False
-        Config["Profileoid"] = 0
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        
+        _Config("w","ProfileSelected",False)
+        _Config("w","Profileoid",0)
+
         _Settings()
         return
     
     if _todo == "Settings_selectprofile" :
         # While auto buy sell running cannot change prfile
-        if Config["RunningBuy"] == True or Config["RunningSell"] == True:
+        if _Config("r","RunningBuy") != False or _Config("r","RunningSell") != False:
             messagebox.showwarning("Warning !","You cannot change profile while Auto Buy Or Sell is running : ")
             return
         
@@ -312,14 +318,13 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         cursor.execute("SELECT *,oid FROM profile WHERE nickname=:nickname",{"nickname":profile_selected})
         data = cursor.fetchall()
         connection.close()
-        # Setting profile selected as true   
-        Config["ProfileSelected"] = True
-        # Getting oid
-        Config["Profileoid"] = data[0][4]
+
         # Dumping oid and profile is selected in config
-        with open("./data/config.json","w") as write_config:
-            json.dump(Config,write_config,indent=4)
-        write_config.close()
+        # Setting profile selected as true   
+        _Config("w","ProfileSelected",True)
+        # Getting oid
+        _Config("w","Profileoid",data[0][4])
+        
         _Settings()
     
     if _todo == "Settings_tesseract_path":
@@ -329,32 +334,32 @@ def _GeneralUpdate(_todo,_a=None,_b=None,_c=None):
         # If folder contians tesseract.exe dump location to config else dump fasle
         if Path(f"{filedir}/tesseract.exe").is_file():
             path = (f"{filedir}/tesseract.exe")
-            Config["PathToTesseract"] = path
-            with open("./data/config.json","w") as write:
-                json.dump(Config,write,indent=4)
-            write.close()
+            _Config("w","PathToTesseract",path)
+            
             messagebox.showinfo("Success !","You set Tesseract OCR folder correctly.")
             return
-        Config["PathToTesseract"] = False
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        _Config("w","PathToTesseract",False)
+
         messagebox.showerror("Error !","You set Tesseract OCR folder incorrectly.")
         return
     
     if _todo == "Settings_reset" :
         response=messagebox.askyesno("Reset","This will reset the program. You will lose all data including profile and porfolio.\n Do you want to continue?")
         if response == True:
-            Config["ProfileSelected"] = False
-            Config["Profileoid"] = 0
-            Config["TermsAndCondition"] = False
-            Config["HowToUse"] = False
-            Config["PathToChromeDriver"] = False
-            Config["MarketOpen"] = False
-            Config["PathToTesseract"] = False
-            with open("./data/config.json","w") as write_config:
-                json.dump(Config,write_config,indent=4)
-            write_config.close()
+
+            
+
+
+
+
+            _Config("w","ProfileSelected",False)
+            _Config("w","Profileoid",0)
+            _Config("w","TermsAndCondition",False)
+            _Config("w","HowToUse",False)
+            _Config("w","PathToChromeDriver",False)
+            _Config("w","MarketOpen",False)
+            _Config("w","PathToTesseract",False)
+            
             os.remove("./data/heathens.db")
 
             # remove zip file
@@ -377,9 +382,9 @@ class _Database :
     def __init__(self):
         pass
     def _fetchselectedprofile(self):
-        if Config["ProfileSelected"] == False:
+        if _Config("r","ProfileSelected") == False:
             return False
-        oid = Config["Profileoid"]
+        oid = _Config("r","Profileoid")
         connection = sqlite3.connect("./data/heathens.db")
         cursor = connection.cursor()
         cursor.execute("SELECT *,oid FROM profile WHERE oid =:oid" ,{"oid":oid})
@@ -400,10 +405,10 @@ class _Database :
 def _Wait(_time,_from):
     for x in range(_time):
         if _from == "Buy":
-            if Config["RunningBuy"] != True:
+            if _Config("r","RunningBuy") == False:
                 return
         if _from == "Sell":
-            if Config["RunningSell"] != True:
+            if _Config("r","RunningSell") == False:
                 return
         print(x+1, "Waiting")
         time.sleep(1)
@@ -435,11 +440,8 @@ class _class_TMS:
 
         # If time is NOT between 11 and 3 and day is inside sun-thus day else keep looping
         if day not in market_open_days:
-            if Config["MarketOpen"] != False:
-                Config["MarketOpen"] = False
-                with open("./data/config.json","w") as write:
-                    json.dump(Config,write,indent=4)
-                write.close()
+            if _Config("r","MarketOpen") != False:
+                _Config("w","MarketOpen",False)
             print("MarketClosed Day")
 
             # returning time until next open day 
@@ -482,11 +484,8 @@ class _class_TMS:
             print("days")
             return time_to_sleep
         if hour < 10 or hour > 14: 
-            if Config["MarketOpen"] != False:
-                Config["MarketOpen"] = False
-                with open("./data/config.json","w") as write:
-                    json.dump(Config,write,indent=4)
-                write.close()
+            if _Config("r","MarketOpen") != False:
+                _Config("w","MarketOpen",False)
             print("MarketClosed Hr")
             
             # hours to wait converted to min
@@ -497,7 +496,7 @@ class _class_TMS:
             time_to_sleep = time_to_sleep * 60
             return time_to_sleep
         # if market already checked once between 11 -- 3
-        if Config["MarketOpen"] == True:
+        if _Config("r","MarketOpen") == True:
             print("Market Open (TRUE)")
             return True
         try:
@@ -505,18 +504,12 @@ class _class_TMS:
             soup = BeautifulSoup(market_status, 'lxml')
             temp = soup.find('div', id= 'top-notice-bar').text
             if temp[:12] == "Market Close":
-                if Config["MarketOpen"] != False:
-                    Config["MarketOpen"] = False
-                    with open("./data/config.json","w") as write:
-                        json.dump(Config,write,indent=4)
-                    write.close()
+                if _Config("r","MarketOpen") != False:
+                    _Config("w","MarketOpen",False)
                 print("Market Closed")
                 return False
             
-            Config["MarketOpen"] = True
-            with open("./data/config.json","w") as write:
-                json.dump(Config,write,indent=4)
-            write.close()
+            _Config("w","MarketOpen",True)
             print("Market Open")
             return True       
         except Exception as e:
@@ -526,12 +519,8 @@ class _class_TMS:
                 txt_write.writelines("\n")
             txt_write.close()
             
-
-
-
-
             try:
-                driver = webdriver.Chrome(Config["PathToChromeDriver"])
+                driver = webdriver.Chrome(_Config("r","PathToChromeDriver"))
                 driver.get("https://nepsealpha.com/trading/chart")
                 iframe = WebDriverWait(driver, 60).until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/div[1]/iframe'))
@@ -576,24 +565,17 @@ class _class_TMS:
             status = driver.find_element(By.XPATH,market_status_xpath)
 
             if status.get_attribute("innerText")[:11] == "MARKET OPEN":
-                Config["MarketOpen"] = True
-                with open("./data/config.json","w") as write:
-                    json.dump(Config,write,indent=4)
-                write.close()
-                print("Market Open")
+                _Config("w","MarketOpen",True)
 
+                print("Market Open")
                 return True
             if status.get_attribute("innerText")[:11] != "MARKET OPEN":
-                if Config["MarketOpen"] != False:
-                    Config["MarketOpen"] = False
-                    with open("./data/config.json","w") as write:
-                        json.dump(Config,write,indent=4)
-                    write.close()
-
+                if _Config("r","MarketOpen") != False:
+                    _Config("w","MarketOpen",False)
+                    
                 return False
-                return "Error"
             
-        return "Failed"
+        return
     def _scrapeltp(self):
 
         url = "https://nepsealpha.com/trading/1/quotes?symbols={}".format(self.stock)
@@ -654,7 +636,7 @@ class _class_TMS:
             image = cv2.fastNlMeansDenoisingColored(image,None,8,10,5,21)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
-            pytesseract.pytesseract.tesseract_cmd= Config["PathToTesseract"]
+            pytesseract.pytesseract.tesseract_cmd= _Config("r","PathToTesseract")
             
             captcha = pytesseract.image_to_string(image)
             
@@ -665,15 +647,19 @@ class _class_TMS:
             login_btn= self.driver.find_element(By.XPATH,login_btn_xpath)
             time.sleep(3)
             login_btn.click()
+            # Checking if error box appears or not
             try:
-                WebDriverWait(self.driver, 20).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "menu__dropdown"))
+                check = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "toast-text"))
                 )
+                x = check.get_attribute("innerText")
             except TimeoutException: 
-                print("CheckCaptcha Failed")
-                continue
-            else:
                 return True
+            else:
+                if x[:14] == "Wrong Captcha!":
+                    continue
+                messagebox.showerror("Error !","TMS ID/Password is incorrect. Or make sure you have entered the correct broker no.")
+                return False
     def _move(self):
         while True:
             try:
@@ -741,13 +727,12 @@ class _class_TMS:
 
         action_button= self.driver.find_element(By.XPATH,execute_btn_xpath)   
 
-        #action_button.click()
+        action_button.click()
         time.sleep(100)
         self.driver.quit()
-        Config["RunningBuy"] = False
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        
+        _Config("w","RunningBuy",False)
+
         print("Done")
         _AutoBuySell("Buy")
         return
@@ -783,10 +768,8 @@ class _class_TMS:
         time.sleep(100)
         self.driver.quit()
         print("Done")
-        Config["RunningSell"] = False
-        with open("./data/config.json","w") as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        
+        _Config("w","RunningSell",False)
         _AutoBuySell("Sell")
         return
 
@@ -800,10 +783,10 @@ def _TMS(_todo,_info_list):
 
     while True:
         if _todo == "Buy":
-            if Config["RunningBuy"] != True:
+            if _Config("r","RunningBuy") == False:
                 return
         if _todo == "Sell":
-            if Config["RunningSell"] != True:
+            if _Config("r","RunningSell") == False:
                 return
         _Wait(time_sleep,_todo)
 
@@ -839,7 +822,8 @@ def _TMS(_todo,_info_list):
         
         # Buying Stock
         if _todo == "Buy": 
-
+            if _Config("r","RunningBuy") == False:
+                return
             #list = [order_type,stock,quantity,price]
             buy_price = _info_list[3]
 
@@ -852,6 +836,8 @@ def _TMS(_todo,_info_list):
                 low_ltp = ltp
                 time_var_low = 1
                 while True:
+                    if _Config("r","RunningBuy") == False:
+                        return
                     _Wait(time_var_low,_todo)
                     market_status_low = _class_TMS()._marketstatus()
 
@@ -875,11 +861,12 @@ def _TMS(_todo,_info_list):
                         low_ltp = ltp_open_scrape_low[0]
                     # If ltp is more than low price buy
                     if ltp_open_scrape_low[0] > low_ltp:
-                        driver = webdriver.Chrome(Config["PathToChromeDriver"])
+                        driver = webdriver.Chrome(_Config("r","PathToChromeDriver"))
                         _class_TMS(driver=driver)._insertclientid()
-                        _class_TMS(driver=driver)._insertpassword()
-                        _class_TMS(driver=driver)._move()
-                        _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type="MKT")._buy()
+
+                        if _class_TMS(driver=driver)._insertpassword() != False:
+                            _class_TMS(driver=driver)._move()
+                            _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type="MKT")._buy()
                         return
                     time_var_low = 30
                 continue
@@ -895,7 +882,8 @@ def _TMS(_todo,_info_list):
         
         # Selling Stock
         if _todo == "Sell":
-
+            if _Config("r","RunningSell") == False:
+                return
             
             #list = [order_type,stock,quantity,stoploss,target]
             
@@ -911,18 +899,20 @@ def _TMS(_todo,_info_list):
 
             if ltp <= stoploss:
                 _class_TMS(driver=driver)._insertclientid()
-                _class_TMS(driver=driver)._insertpassword()
-                _class_TMS(driver=driver)._move()
-                if order_type != "LMT":
-                    _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type=order_type)._sell()
-                    return
-                _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type=order_type,price=stoploss)._sell()
+                if _class_TMS(driver=driver)._insertpassword() != False:
+                    _class_TMS(driver=driver)._move()
+                    if order_type != "LMT":
+                        _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type=order_type)._sell()
+                        return
+                    _class_TMS(driver=driver,stock = stock,quantity = quantity,order_type=order_type,price=stoploss)._sell()
                 return
             # if ltp is greater than target
             if ltp >= target:
                 time_var_high = 1
                 high_ltp = ltp
                 while True:
+                    if _Config("r","RunningSell") == False:
+                        return
                     _Wait(time_var_high,_todo)
                     market_status_high = _class_TMS()._marketstatus()
 
@@ -945,11 +935,12 @@ def _TMS(_todo,_info_list):
                         high_ltp = nepse_alpha_fetched_high[0]
                     # if ltp is lesser than high ltp Sell
                     if nepse_alpha_fetched_high[0] < high_ltp:
-                        driver = webdriver.Chrome(Config["PathToChromeDriver"])
+                        driver = webdriver.Chrome(_Config("r","PathToChromeDriver"))
                         _class_TMS(driver=driver)._insertclientid()
-                        _class_TMS(driver=driver)._insertpassword()
-                        _class_TMS(driver=driver)._move()
-                        _class_TMS(driver=driver,stock=stock,quantity=quantity,order_type="MKT")._sell()
+                        
+                        if _class_TMS(driver=driver)._insertpassword() != False:
+                            _class_TMS(driver=driver)._move()
+                            _class_TMS(driver=driver,stock=stock,quantity=quantity,order_type="MKT")._sell()
                         return
                     
                     time_var_high = 30 # 30 sec
@@ -1024,12 +1015,10 @@ def _ValidateAutoBuySell(_todo,_var_list):
         list = [order_type,stock,quantity,price]
 
         # Set running buy value true
-        Config["RunningBuy"] = True
-        with open("./data/config.json",'w') as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        
+        _Config("w","RunningBuy",list)
         _AutoBuySell("Buy")
-        _TMS(_todo,list)
+        threading.Thread(target = lambda:_TMS(_todo,list)).start()
         return
 
     if _todo == "Sell":
@@ -1060,12 +1049,9 @@ def _ValidateAutoBuySell(_todo,_var_list):
         list = [order_type,stock,quantity,stoploss,target]
         
         #var_list = [order_type_var,stock_var,quantity_var,stoploss,target]
-        Config["RunningSell"] = True
-        with open("./data/config.json",'w') as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+        _Config("w","RunningSell",list)
         _AutoBuySell("Sell")
-        _TMS(_todo,list)
+        threading.Thread(target = lambda:_TMS(_todo,list)).start()
         return
     return
 
@@ -1081,19 +1067,19 @@ def _AutoBuySell(_menu):
         pass
         
     #Setting MarketOpen to its default value False
-    Config["MarketOpen"] = False
-    with open("./data/config.json","w") as write:
-        json.dump(Config,write,indent=4)
-    write.close()
+    _Config("w","MarketOpen",False)
+
 
     # Seting Frames 
     menu_frame = Frame(Root)
     input_frame = Frame(Root)
-    menu_frame.grid(row=1,column=1)
-    input_frame.grid(row=2,column=1,pady=(35,0))
+    running_frame = Frame(Root,background="#90ee90",width=600,relief=SUNKEN)
+    running_frame.grid(row=1,column=1,sticky = W + E)
+    menu_frame.grid(row=2,column=1)
+    input_frame.grid(row=3,column=1,pady=(35,0))
     
     #Disable everything and send messagebox if profile not selected
-    if Config["ProfileSelected"] == False or Config["PathToTesseract"] == False or Config["PathToChromeDriver"] == False:
+    if _Config("r","ProfileSelected") == False or _Config("r","PathToTesseract") == False or _Config("r","PathToChromeDriver") == False:
 
         buy_btn = Button(menu_frame,text = "Buy",state= DISABLED,padx=13,pady=3,font=font_btn)
         sell_btn = Button(menu_frame,text = "Sell",state= DISABLED,padx=13,pady=3,font=font_btn)
@@ -1141,11 +1127,11 @@ def _AutoBuySell(_menu):
 
         
         # Showing warning
-        if Config["ProfileSelected"] == False:
+        if _Config("r","ProfileSelected") == False:
             messagebox.showwarning("Warning !","You cannot use this feature unless you setup your profile.'\n To setup your profile please go to Settings > Create Profile and seleted your profile in settings.")
-        if Config["PathToTesseract"] == False:
+        if _Config("r","PathToTesseract") == False:
             messagebox.showwarning("Warning !","You cannot use this feature unless you install Tesseract OCR and set its folder in Settings.'\n To go to https://github.com/UB-Mannheim/tesseract/wiki and install it. Or you can also install it with the setup i have provided in setup folder.")
-        if Config["PathToChromeDriver"] == False:
+        if _Config("r","PathToChromeDriver") == False:
             messagebox.showwarning("Warning !","Chrome Driver not found either you haven't installed Chrome or the driver didn't download correctly.")
         return
 
@@ -1195,77 +1181,99 @@ def _AutoBuySell(_menu):
 
         var_list = [order_type_var,stock_var,quantity_var,price_var]
         
-        if Config["RunningBuy"] == True:
-            running = Label(input_frame,text = "Running",font=font_lb)
-            running.grid(row=6,column=1,columnspan=2)
-        
+        if _Config("r","RunningBuy") != False:
             buy_btn  = Button(input_frame,text="Buy",state = DISABLED,font=font_btn,padx=13,pady=3)
             buy_btn.grid(row=5,column=1,pady=(20,0))
 
             quit_btn  = Button(input_frame,text="Quit",command = lambda: _Quit("Buy"),font=font_btn,padx=13,pady=3)
             quit_btn.grid(row=5,column=2,pady=(20,0))
+
+            Root.geometry("600x350")
+
+            running_order_type_lb = Label(running_frame,text = "Order Type : {}".format(_Config("r","RunningBuy")[0]),font = font_lb,background = "#90ee90")
+            running_stock_lb = Label(running_frame,text = "Stock : {}".format(_Config("r","RunningBuy")[1]),font = font_lb,background = "#90ee90")
+            running_quantity_lb = Label(running_frame,text = "Quantity : {}".format(_Config("r","RunningBuy")[2]),font = font_lb,background = "#90ee90")
+            running_price_lb = Label(running_frame,text = "Buy Below : {}".format(_Config("r","RunningBuy")[3]),font = font_lb,background = "#90ee90")
+            running_order_type_lb.grid(row=1,column=1,pady=10,padx=(55,0))
+            running_stock_lb.grid(row=1,column=2,pady=10,padx=(40,0))
+            running_quantity_lb.grid(row=1,column=3,pady=10,padx=(40,0))
+            running_price_lb.grid(row=1,column=4,pady=10,padx=(40,60))
+
+
             return
-        buy_btn  = Button(input_frame,text="Buy",command=lambda: threading.Thread(target=lambda: _ValidateAutoBuySell("Buy",var_list)).start(),font=font_btn,padx=13,pady=3)
+        buy_btn  = Button(input_frame,text="Buy",command=lambda: _ValidateAutoBuySell("Buy",var_list),font=font_btn,padx=13,pady=3)
         buy_btn.grid(row=5,column=1,columnspan=2,pady=(20,0))
         return
 
     if _menu == "Sell":
-        buy_btn = Button(menu_frame,text = "Buy",command=lambda:_AutoBuySell("Buy"),padx=13,pady=3,font=font_btn)
-        sell_btn = Button(menu_frame,text = "Sell",state= DISABLED,padx=13,pady=3,font=font_btn)
-        profile_lb = Label(menu_frame,text = profile_text,font = font_lb)
-        home_btn = Button(menu_frame,image = home_icon,command=_HomeScreen)
-        buy_btn.grid(row=1,column=1,padx=(30,0),pady=(25,0))
-        sell_btn.grid(row=1,column=2,padx=(20,0),pady=(25,0))
-        profile_lb.grid(row=1,column=3,padx=(95,0),pady=(25,0))
-        home_btn.grid(row=1,column=4,padx=(195,0),pady=(25,0))
+        if True: # Setting Wigdets
+            buy_btn = Button(menu_frame,text = "Buy",command=lambda:_AutoBuySell("Buy"),padx=13,pady=3,font=font_btn)
+            sell_btn = Button(menu_frame,text = "Sell",state= DISABLED,padx=13,pady=3,font=font_btn)
+            profile_lb = Label(menu_frame,text = profile_text,font = font_lb)
+            home_btn = Button(menu_frame,image = home_icon,command=_HomeScreen)
+            buy_btn.grid(row=1,column=1,padx=(30,0),pady=(25,0))
+            sell_btn.grid(row=1,column=2,padx=(20,0),pady=(25,0))
+            profile_lb.grid(row=1,column=3,padx=(95,0),pady=(25,0))
+            home_btn.grid(row=1,column=4,padx=(195,0),pady=(25,0))
 
-        order_type_var = StringVar()
-        order_type_list = ["LMT","MKT"]
-        order_type_var.set(order_type_list[0])
-        order_type_lb = Label(input_frame,text = "Order Type : ",font = font_lb)
-        order_type_opt = OptionMenu(input_frame,order_type_var,*order_type_list)
-        order_type_info = Button(input_frame,image = info_icon,command=lambda:messagebox.showinfo("Order Type Info","Please watch this video if you want info on order type: https://www.youtube.com/watch?v=jbE7dl3wof8 "))
-        order_type_lb.grid(row=1,column=1,padx=(0,60))
-        order_type_opt.grid(row=1,column=2)
-        order_type_info.grid(row=1,column=3,padx=(25,0))
+            order_type_var = StringVar()
+            order_type_list = ["LMT","MKT"]
+            order_type_var.set(order_type_list[0])
+            order_type_lb = Label(input_frame,text = "Order Type : ",font = font_lb)
+            order_type_opt = OptionMenu(input_frame,order_type_var,*order_type_list)
+            order_type_info = Button(input_frame,image = info_icon,command=lambda:messagebox.showinfo("Order Type Info","Please watch this video if you want info on order type: https://www.youtube.com/watch?v=jbE7dl3wof8 "))
+            order_type_lb.grid(row=1,column=1,padx=(0,60))
+            order_type_opt.grid(row=1,column=2)
+            order_type_info.grid(row=1,column=3,padx=(25,0))
 
-        stock_var = StringVar()
-        stock_lb = Label(input_frame,text= "Stock : ",font = font_lb)
-        stock_etr = Entry(input_frame,width = 20, textvariable= stock_var)
-        stock_lb.grid(row=2,column=1,padx=(0,90),pady=(7,0))
-        stock_etr.grid(row=2,column=2,pady=(7,0))
+            stock_var = StringVar()
+            stock_lb = Label(input_frame,text= "Stock : ",font = font_lb)
+            stock_etr = Entry(input_frame,width = 20, textvariable= stock_var)
+            stock_lb.grid(row=2,column=1,padx=(0,90),pady=(7,0))
+            stock_etr.grid(row=2,column=2,pady=(7,0))
 
-        quantity_var = StringVar()
-        quantity_lb = Label(input_frame,text="Quantity : ",font=font_lb)
-        quantity_etr = Entry(input_frame,width=20,textvariable=quantity_var)
-        quantity_lb.grid(row=3,column=1,padx=(0,73),pady=(7,0))
-        quantity_etr.grid(row=3,column=2,pady=(7,0))
-        
-        stoploss_var = StringVar()
-        stoploss_lb = Label(input_frame,text="Stoploss : ",font=font_lb)
-        stoploss_etr = Entry(input_frame,width=20,textvariable=stoploss_var)
-        stoploss_lb.grid(row=4,column=1,padx=(0,73),pady=(7,0))
-        stoploss_etr.grid(row=4,column=2,pady=(7,0))
-        
-        target_var = StringVar()
-        target_lb = Label(input_frame,text="Target : ",font=font_lb)
-        target_etr = Entry(input_frame,width=20,textvariable=target_var)
-        target_lb.grid(row=5,column=1,padx=(0,85),pady=(7,0))
-        target_etr.grid(row=5,column=2,pady=(7,0))
+            quantity_var = StringVar()
+            quantity_lb = Label(input_frame,text="Quantity : ",font=font_lb)
+            quantity_etr = Entry(input_frame,width=20,textvariable=quantity_var)
+            quantity_lb.grid(row=3,column=1,padx=(0,73),pady=(7,0))
+            quantity_etr.grid(row=3,column=2,pady=(7,0))
+            
+            stoploss_var = StringVar()
+            stoploss_lb = Label(input_frame,text="Stoploss : ",font=font_lb)
+            stoploss_etr = Entry(input_frame,width=20,textvariable=stoploss_var)
+            stoploss_lb.grid(row=4,column=1,padx=(0,73),pady=(7,0))
+            stoploss_etr.grid(row=4,column=2,pady=(7,0))
+            
+            target_var = StringVar()
+            target_lb = Label(input_frame,text="Target : ",font=font_lb)
+            target_etr = Entry(input_frame,width=20,textvariable=target_var)
+            target_lb.grid(row=5,column=1,padx=(0,85),pady=(7,0))
+            target_etr.grid(row=5,column=2,pady=(7,0))
 
-        var_list = [order_type_var,stock_var,quantity_var,stoploss_var,target_var]
+            var_list = [order_type_var,stock_var,quantity_var,stoploss_var,target_var]
 
-        if Config["RunningSell"] == True:
-            running = Label(input_frame,text = "Running",font=font_lb)
-            running.grid(row=7,column=1,columnspan=2)
-        
+        if _Config("r","RunningSell") != False:
             sell_btn  = Button(input_frame,text="Sell",state=DISABLED,padx=13,pady=3,font=font_btn)
             sell_btn.grid(row=6,column=1,pady=(15,0))
 
             quit_btn  = Button(input_frame,text="Quit",command = lambda: _Quit("Sell"),font=font_btn,padx=13,pady=3)
             quit_btn.grid(row=6,column=2,pady=(15,0))
+
+            Root.geometry("600x350")
+
+            running_order_type_lb = Label(running_frame,text = "Order Type : {}".format(_Config("r","RunningSell")[0]),font = font_lb,background = "#90ee90")
+            running_stock_lb = Label(running_frame,text = "Stock : {}".format(_Config("r","RunningSell")[1]),font = font_lb,background = "#90ee90")
+            running_quantity_lb = Label(running_frame,text = "Quantity : {}".format(_Config("r","RunningSell")[2]),font = font_lb,background = "#90ee90")
+            running_stoploss_lb = Label(running_frame,text = "Stoploss : {}".format(_Config("r","RunningSell")[3]),font = font_lb,background = "#90ee90")
+            running_target_lb = Label(running_frame,text = "Target : {}".format(_Config("r","RunningSell")[4]),font = font_lb,background = "#90ee90")
+            running_order_type_lb.grid(row=1,column=1,pady=10,padx=(40,0))
+            running_stock_lb.grid(row=1,column=2,pady=10,padx=(20,0))
+            running_quantity_lb.grid(row=1,column=3,pady=10,padx=(20,0))
+            running_stoploss_lb.grid(row=1,column=4,pady=10,padx=(20,0))
+            running_target_lb.grid(row=1,column=5,pady=10,padx=(20,40))
+
             return
-        sell_btn  = Button(input_frame,text="Sell",command=lambda: threading.Thread(target=lambda: _ValidateAutoBuySell("Sell",var_list)).start(),padx=13,pady=3,font=font_btn)
+        sell_btn  = Button(input_frame,text="Sell",command=lambda: _ValidateAutoBuySell("Sell",var_list),padx=13,pady=3,font=font_btn)
         sell_btn.grid(row=6,column=1,columnspan=2,pady=(15,0))
         return
 
@@ -1944,7 +1952,7 @@ def _Settings():
     profile_list = []
     fetched_profile = _Database()._fetchallprofile()
 
-    if Config["ProfileSelected"] == False:
+    if _Config("r","ProfileSelected") == False:
 
         if fetched_profile == False:
             profile_list = ["Crete Profile"]
@@ -1955,7 +1963,7 @@ def _Settings():
                 profile_list.append(profiles[0])
             profile_var.set("Select A Profile")
 
-    if Config["ProfileSelected"] == True:
+    if _Config("r","ProfileSelected") == True:
             fetched_profile = _Database()._fetchallprofile()
             fetched_selected_profile = _Database()._fetchselectedprofile()
             for profiles in fetched_profile:
@@ -1973,7 +1981,7 @@ def _Settings():
     select_profile_opt.config(height=1,width=15)
     select_profile_lb.grid(row=3,column=1,pady=(20,0),padx=(40,0))
     select_profile_opt.grid(row=3,column=2,pady=(20,0))
-    if Config["ProfileSelected"] == True:
+    if _Config("r","ProfileSelected") == True:
         show_profile_details_btn = Button(Root,text="Show Profile Details",font=font_btn,padx=13,pady=3,command=_ShowProfile)
     else:
         show_profile_details_btn = Button(Root,text="Show Profile Details",font=font_btn,padx=13,pady=3,command=lambda:messagebox.showerror("Error !","Please select a profile first."))
@@ -2162,10 +2170,8 @@ def _CheckChrome():
         path_unextracted = './lib/drivers/{}/'.format(chrome_version)
         path_download = "./lib/downloads/{}.zip".format(chrome_version)
         if Path(path_extracted).is_file():
-            Config["PathToChromeDriver"] = path_extracted
-            with open ("./data/config.json","w") as write:
-                json.dump(Config,write,indent=4)
-            write.close()
+            
+            _Config("w","PathToChromeDriver",path_extracted)
             break
         else:
             #Download And Unzip Driver And Set Path
@@ -2204,17 +2210,14 @@ def _Main():
     txt_write.close()
     
     # Setting default value false for running RunningBuy and RunningBuy
-    if Config["RunningBuy"] == True:
-        Config["RunningBuy"] = False
-        with open("./data/config.json",'w') as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+    if _Config("r","RunningBuy") != True:
+
+        _Config("w","RunningBuy",False)
     
-    if Config["RunningSell"] == True:
-        Config["RunningSell"] = False
-        with open("./data/config.json",'w') as write:
-            json.dump(Config,write,indent=4)
-        write.close()
+    if _Config("r","RunningSell") != False:
+
+        _Config("w","RunningSell",False)
+
     
     # Checking Chrome Driver
     threading.Thread(target=_CheckChrome).start()
@@ -2236,11 +2239,11 @@ def _Main():
     except Exception as e:
         print(e)
 
-    if Config["TermsAndCondition"] != True:
+    if _Config("r","TermsAndCondition") != True:
         #Run TermsandCondition:
         _TermsAndCondition()
         return
-    if Config["TermsAndCondition"] == True and Config["HowToUse"] == False:
+    if _Config("r","TermsAndCondition") == True and _Config("r","HowToUse") == False:
         #Run HowToUse
         _HomeScreen()
         _HowToUse()
