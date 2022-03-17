@@ -7,5 +7,10 @@
     "PathToTesseract": false,
     "PathToChromeDriver": false,
     "RunningBuy": false,
-    "RunningSell": false
+    "RunningSell": false,
+    "MarketDataBuy": null,
+    "MarketDataSell": null,
+    "BotToken": 0,
+    "RunningBot": false,
+    "ToRunBot": false
 }

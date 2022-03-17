@@ -1,0 +1,8 @@
+Pillow
+requests
+selenium
+pytz
+beautifulsoup4
+pytesseract
+opencv-python
+discord.py

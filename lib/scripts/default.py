@@ -1,19 +1,14 @@
 import sys
+import os
 # For threding task freezing tkinter
 import threading
 # For config file
 import json
 # To delete files
-import os
-#Database (python in-built)
-import sqlite3
 # GUI
 from tkinter import *
 from tkinter import font, messagebox,ttk,filedialog
-# Nepal standard time (Local time)
-import pytz
 import time
-from datetime import datetime
 # GUI Icon
 from PIL import Image,ImageTk
 # for Web Scraping 
@@ -31,18 +26,13 @@ from selenium.webdriver.support import expected_conditions as EC #For explicit w
 import pytesseract
 #Image Manipultion
 import cv2
-# Unzip File
-import zipfile 
-# For Checking Driver In Dict
-from pathlib import Path
-# Downloading Driver 
-import urllib.request
-# For Checking Chrome Version
-import subprocess
 # For fetching all file in in folder
-import glob 
+import glob
 # For folder
 import shutil
+from pathlib import Path
+
+import sqlite3
 
 
 
@@ -105,3 +95,8 @@ execute_btn_xpath = "/html/body/app-root/tms/main/div/div/app-member-client-orde
 
 odd_lot_btn_xpath = "/html/body/app-root/tms/main/div/div/app-member-client-order-entry/div/div/div[1]/div[1]/form/label[3]/fieldset"
 mkt_order_type_btn_xpath = "/html/body/app-root/tms/main/div/div/app-member-client-order-entry/div/div/div[3]/form/div[1]/div[1]/div[2]/div[1]/label[1]/span"
+
+
+if __name__ == "__main__":
+    print("Run run.py Not default.py")
+    input()

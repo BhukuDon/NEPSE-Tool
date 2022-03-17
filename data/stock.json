@@ -1,1 +1,38 @@
-["NABIL", "CIT", "NBF2", "RLFL", "CHDC", "NHPC"]
+{
+    "RLFL": [
+        "Reliance Finance Ltd.",
+        "Finance"
+    ],
+    "GBIME": [
+        "Global IME Bank Limited",
+        "Commercial Banks"
+    ],
+    "NABIL": [
+        "Nabil Bank Limited",
+        "Commercial Banks"
+    ],
+    "MEGA": [
+        "Mega Bank Nepal Ltd.",
+        "Commercial Banks"
+    ],
+    "SAHAS": [
+        "Sahas Urja Limited",
+        "Hydro Power"
+    ],
+    "CHDC": [
+        "CEDB Hydropower Development Company Limited",
+        "Investment"
+    ],
+    "NHPC": [
+        "National Hydro Power Company Limited",
+        "Hydro Power"
+    ],
+    "AHPC": [
+        "Arun Valley Hydropower Development Co. Ltd.",
+        "Hydro Power"
+    ],
+    "GHL": [
+        "Ghalemdi Hydro Limited",
+        "Hydro Power"
+    ]
+}
